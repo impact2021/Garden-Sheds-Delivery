@@ -83,25 +83,34 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
         // Add depot pickup rates if courier is assigned
         if ($courier_slug) {
             $courier = GSD_Courier::get_courier($courier_slug);
-            $is_enabled = isset($courier['enabled']) ? $courier['enabled'] : true;
             
-            if ($is_enabled) {
-                $depots = GSD_Courier::get_depots($courier_slug);
+            // Check if courier exists and is enabled
+            if ($courier) {
+                $is_enabled = isset($courier['enabled']) ? $courier['enabled'] : true;
                 
-                if (!empty($depots)) {
-                    foreach ($depots as $depot) {
-                        $rate = array(
-                            'id' => $this->get_rate_id() . ':depot:' . $depot['id'],
-                            'label' => sprintf(__('Pickup from %s', 'garden-sheds-delivery'), $depot['name']),
-                            'cost' => 0, // Depot pickup is free
-                            'meta_data' => array(
-                                'depot_id' => $depot['id'],
-                                'depot_name' => $depot['name'],
-                                'courier_name' => $courier['name'],
-                                'delivery_type' => 'depot'
-                            ),
-                        );
-                        $this->add_rate($rate);
+                if ($is_enabled) {
+                    $depots = GSD_Courier::get_depots($courier_slug);
+                    
+                    if (!empty($depots) && is_array($depots)) {
+                        foreach ($depots as $depot) {
+                            // Ensure depot has required fields
+                            if (!isset($depot['id']) || !isset($depot['name'])) {
+                                continue;
+                            }
+                            
+                            $rate = array(
+                                'id' => $this->get_rate_id() . ':depot:' . $depot['id'],
+                                'label' => sprintf(__('Pickup from %s', 'garden-sheds-delivery'), $depot['name']),
+                                'cost' => 0, // Depot pickup is free
+                                'meta_data' => array(
+                                    'depot_id' => $depot['id'],
+                                    'depot_name' => $depot['name'],
+                                    'courier_name' => $courier['name'],
+                                    'delivery_type' => 'depot'
+                                ),
+                            );
+                            $this->add_rate($rate);
+                        }
                     }
                 }
             }
@@ -109,13 +118,16 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
 
         // Add home delivery rate if available
         if ($has_home_delivery && $home_delivery_price > 0) {
+            // Ensure cost is a float for proper calculation
+            $delivery_cost = floatval($home_delivery_price);
+            
             $rate = array(
                 'id' => $this->get_rate_id() . ':home_delivery',
-                'label' => sprintf(__('Home Delivery (+%s)', 'garden-sheds-delivery'), wc_price($home_delivery_price)),
-                'cost' => $home_delivery_price,
+                'label' => sprintf(__('Home Delivery (+%s)', 'garden-sheds-delivery'), wc_price($delivery_cost)),
+                'cost' => $delivery_cost,
                 'meta_data' => array(
                     'delivery_type' => 'home_delivery',
-                    'home_delivery_price' => $home_delivery_price
+                    'home_delivery_price' => $delivery_cost
                 ),
             );
             $this->add_rate($rate);
