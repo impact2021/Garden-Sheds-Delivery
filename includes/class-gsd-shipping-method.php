@@ -118,17 +118,14 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
 
         // Add home delivery rate if available
         if ($has_home_delivery && $home_delivery_price > 0) {
-            // WooCommerce expects numeric cost, not formatted string
-            $delivery_cost = (float)$home_delivery_price;
-            
+            // Delivery cost will be added as a separate fee, so shipping rate cost is 0
             $rate = array(
                 'id' => $this->get_rate_id() . ':home_delivery',
                 'label' => __('Home Delivery', 'garden-sheds-delivery'),
-                'cost' => $delivery_cost, // Pass as numeric value
-                'calc_tax' => 'per_order', // Enable tax calculation for this rate
+                'cost' => 0, // Cost shown as separate fee in order summary
                 'meta_data' => array(
                     'delivery_type' => 'home_delivery',
-                    'home_delivery_price' => $delivery_cost
+                    'home_delivery_price' => (float)$home_delivery_price
                 ),
             );
             $this->add_rate($rate);
@@ -139,17 +136,14 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
         $express_delivery_price = $this->get_package_express_delivery_price($package);
         
         if ($has_express_delivery && $express_delivery_price > 0) {
-            // WooCommerce expects numeric cost, not formatted string
-            $delivery_cost = (float)$express_delivery_price;
-            
+            // Delivery cost will be added as a separate fee, so shipping rate cost is 0
             $rate = array(
                 'id' => $this->get_rate_id() . ':express_delivery',
                 'label' => __('Small Item Delivery', 'garden-sheds-delivery'),
-                'cost' => $delivery_cost, // Pass as numeric value
-                'calc_tax' => 'per_order', // Enable tax calculation for this rate
+                'cost' => 0, // Cost shown as separate fee in order summary
                 'meta_data' => array(
                     'delivery_type' => 'express_delivery',
-                    'express_delivery_price' => $delivery_cost
+                    'express_delivery_price' => (float)$express_delivery_price
                 ),
             );
             $this->add_rate($rate);

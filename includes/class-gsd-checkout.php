@@ -38,6 +38,9 @@ class GSD_Checkout {
         
         // Add custom display for shipping in cart and checkout totals
         add_filter('woocommerce_cart_shipping_method_full_label', array($this, 'customize_shipping_label'), 10, 2);
+        
+        // Add delivery fee as separate line item in order summary
+        add_action('woocommerce_cart_calculate_fees', array($this, 'add_delivery_fee'));
     }
 
     /**
@@ -180,5 +183,79 @@ class GSD_Checkout {
         }
         
         return $label;
+    }
+
+    /**
+     * Add delivery fee as separate line item in order summary
+     * 
+     * This hook adds the delivery cost as a separate fee line in the cart/checkout
+     * when home delivery or small item delivery is selected
+     */
+    public function add_delivery_fee() {
+        if (is_admin() && !defined('DOING_AJAX')) {
+            return;
+        }
+
+        // Get chosen shipping methods from the session
+        $chosen_methods = WC()->session->get('chosen_shipping_methods');
+        
+        if (empty($chosen_methods)) {
+            return;
+        }
+
+        // Get the shipping package once
+        $packages = WC()->cart->get_shipping_packages();
+        if (empty($packages)) {
+            return;
+        }
+        $package = $packages[0];
+
+        // Check each chosen shipping method
+        foreach ($chosen_methods as $chosen_method) {
+            // Check if this is our shipping method with home delivery
+            if (strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':home_delivery') !== false) {
+                $home_delivery_price = $this->get_delivery_price_from_package($package, 'home');
+                
+                if ($home_delivery_price > 0) {
+                    WC()->cart->add_fee(__('Home Delivery', 'garden-sheds-delivery'), $home_delivery_price, true);
+                }
+                break;
+            }
+            // Check if this is our shipping method with small item delivery
+            elseif (strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':express_delivery') !== false) {
+                $express_delivery_price = $this->get_delivery_price_from_package($package, 'express');
+                
+                if ($express_delivery_price > 0) {
+                    WC()->cart->add_fee(__('Small Item Delivery', 'garden-sheds-delivery'), $express_delivery_price, true);
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * Get delivery price from package
+     * 
+     * Helper method to retrieve delivery price for a given package
+     *
+     * @param array $package The shipping package
+     * @param string $type Type of delivery: 'home' or 'express'
+     * @return float The delivery price
+     */
+    private function get_delivery_price_from_package($package, $type) {
+        static $shipping_method = null;
+        
+        // Create shipping method instance only once
+        if ($shipping_method === null) {
+            $shipping_method = new GSD_Shipping_Method();
+        }
+        
+        if ($type === 'home') {
+            return $shipping_method->get_package_home_delivery_price($package);
+        } elseif ($type === 'express') {
+            return $shipping_method->get_package_express_delivery_price($package);
+        }
+        
+        return 0;
     }
 }
