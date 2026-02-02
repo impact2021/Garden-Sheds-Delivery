@@ -277,12 +277,20 @@ class GSD_Checkout {
 
         $home_delivery = isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === '1';
         $courier_slug = $this->get_cart_courier();
+        $has_home_delivery_option = $this->cart_has_home_delivery_option();
         
-        // Depot is required only if:
-        // 1. Home delivery is not selected AND
-        // 2. There's a courier assigned (depots are available)
-        if (!$home_delivery && $courier_slug && empty($_POST['gsd_depot'])) {
-            wc_add_notice(__('Please select a depot location or choose home delivery.', 'garden-sheds-delivery'), 'error');
+        // If there's a courier with depots available
+        if ($courier_slug) {
+            // Depot is required if home delivery is not selected
+            if (!$home_delivery && empty($_POST['gsd_depot'])) {
+                wc_add_notice(__('Please select a depot location or choose home delivery.', 'garden-sheds-delivery'), 'error');
+            }
+        } else if ($has_home_delivery_option) {
+            // No courier assigned but home delivery is available
+            // Home delivery MUST be selected
+            if (!$home_delivery) {
+                wc_add_notice(__('Please select home delivery for this product.', 'garden-sheds-delivery'), 'error');
+            }
         }
     }
 
