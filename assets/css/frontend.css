@@ -1,0 +1,95 @@
+/**
+ * Garden Sheds Delivery - Frontend Styles
+ */
+
+.gsd-delivery-selection {
+    background: #f7f7f7;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    border: 1px solid #e0e0e0;
+}
+
+.gsd-delivery-selection h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 18px;
+}
+
+.gsd-delivery-selection select {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.gsd-delivery-selection label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.gsd-delivery-selection input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.gsd-checkout-fields {
+    margin-bottom: 20px;
+}
+
+.woocommerce-delivery-details {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.woocommerce-delivery-details h2 {
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.woocommerce-table--delivery-details th {
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+    width: 30%;
+}
+
+.woocommerce-table--delivery-details td {
+    padding: 10px;
+}
+
+/* Product admin styles */
+#gsd_delivery_data .options_group {
+    padding: 12px;
+}
+
+/* Admin order details */
+.order_data_column .gsd-delivery-info {
+    margin-top: 15px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .gsd-delivery-selection select {
+        max-width: 100%;
+    }
+    
+    .woocommerce-table--delivery-details th,
+    .woocommerce-table--delivery-details td {
+        display: block;
+        width: 100%;
+        padding: 8px 0;
+    }
+    
+    .woocommerce-table--delivery-details th {
+        padding-top: 12px;
+        font-weight: 600;
+    }
+}
