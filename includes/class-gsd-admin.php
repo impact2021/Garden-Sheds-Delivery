@@ -47,6 +47,16 @@ class GSD_Admin {
             'dashicons-store',
             56
         );
+        
+        // Add submenu for depot locations
+        add_submenu_page(
+            'garden-sheds-delivery',
+            __('Depot Locations', 'garden-sheds-delivery'),
+            __('Depot Locations', 'garden-sheds-delivery'),
+            'manage_woocommerce',
+            'garden-sheds-delivery-depots',
+            array($this, 'depots_page')
+        );
     }
 
     /**
@@ -59,24 +69,32 @@ class GSD_Admin {
         register_setting('gsd_settings', 'gsd_show_contact_for_delivery');
         register_setting('gsd_settings', 'gsd_express_delivery_categories');
         register_setting('gsd_settings', 'gsd_default_express_delivery_cost');
+        register_setting('gsd_settings', 'gsd_contact_delivery_categories');
+        register_setting('gsd_settings', 'gsd_main_freight_categories');
+        register_setting('gsd_settings', 'gsd_pbt_categories');
     }
 
     /**
      * Settings page
      */
     public function settings_page() {
-        if (isset($_POST['gsd_save_couriers']) && check_admin_referer('gsd_save_couriers')) {
-            $this->save_couriers();
+        if (isset($_POST['gsd_save_settings']) && check_admin_referer('gsd_save_settings')) {
             $this->save_delivery_settings();
             echo '<div class="notice notice-success"><p>' . esc_html__('Settings saved successfully.', 'garden-sheds-delivery') . '</p></div>';
         }
 
-        $couriers = GSD_Courier::get_couriers();
-        $selected_categories = get_option('gsd_home_delivery_categories', array());
+        $selected_home_delivery = get_option('gsd_home_delivery_categories', array());
+        $selected_contact_delivery = get_option('gsd_contact_delivery_categories', array());
+        $selected_main_freight = get_option('gsd_main_freight_categories', array());
+        $selected_pbt = get_option('gsd_pbt_categories', array());
+        
+        // Ensure all selected values are arrays
+        $selected_home_delivery = is_array($selected_home_delivery) ? $selected_home_delivery : array();
+        $selected_contact_delivery = is_array($selected_contact_delivery) ? $selected_contact_delivery : array();
+        $selected_main_freight = is_array($selected_main_freight) ? $selected_main_freight : array();
+        $selected_pbt = is_array($selected_pbt) ? $selected_pbt : array();
+        
         $default_cost = get_option('gsd_default_home_delivery_cost', '150');
-        $show_contact_option = get_option('gsd_show_contact_for_delivery', false);
-        $express_delivery_categories = get_option('gsd_express_delivery_categories', array());
-        $express_delivery_cost = get_option('gsd_default_express_delivery_cost', '15');
         
         // Get all product categories
         $categories = get_terms(array(
@@ -88,10 +106,61 @@ class GSD_Admin {
             <h1><?php echo esc_html__('Shed Delivery Settings', 'garden-sheds-delivery'); ?></h1>
             
             <form method="post" action="">
-                <?php wp_nonce_field('gsd_save_couriers'); ?>
+                <?php wp_nonce_field('gsd_save_settings'); ?>
                 
-                <h2><?php echo esc_html__('Home Delivery Options', 'garden-sheds-delivery'); ?></h2>
-                <p><?php echo esc_html__('Configure which product categories should offer home delivery and set the default cost.', 'garden-sheds-delivery'); ?></p>
+                <h2><?php echo esc_html__('Delivery Options by Category', 'garden-sheds-delivery'); ?></h2>
+                <p><?php echo esc_html__('Configure delivery options for each product category.', 'garden-sheds-delivery'); ?></p>
+                
+                <?php if (!empty($categories) && !is_wp_error($categories)) : ?>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th><?php echo esc_html__('Category', 'garden-sheds-delivery'); ?></th>
+                            <th style="text-align: center;"><?php echo esc_html__('Home Delivery', 'garden-sheds-delivery'); ?></th>
+                            <th style="text-align: center;"><?php echo esc_html__('Might be able to offer home delivery', 'garden-sheds-delivery'); ?></th>
+                            <th style="text-align: center;"><?php echo esc_html__('Main Freight', 'garden-sheds-delivery'); ?></th>
+                            <th style="text-align: center;"><?php echo esc_html__('PBT', 'garden-sheds-delivery'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($categories as $category) : ?>
+                        <tr>
+                            <td><strong><?php echo esc_html($category->name); ?></strong></td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" 
+                                       name="gsd_home_delivery_categories[]" 
+                                       value="<?php echo esc_attr($category->term_id); ?>"
+                                       <?php checked(in_array($category->term_id, $selected_home_delivery)); ?> />
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" 
+                                       name="gsd_contact_delivery_categories[]" 
+                                       value="<?php echo esc_attr($category->term_id); ?>"
+                                       <?php checked(in_array($category->term_id, $selected_contact_delivery)); ?> />
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" 
+                                       name="gsd_main_freight_categories[]" 
+                                       value="<?php echo esc_attr($category->term_id); ?>"
+                                       <?php checked(in_array($category->term_id, $selected_main_freight)); ?> />
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" 
+                                       name="gsd_pbt_categories[]" 
+                                       value="<?php echo esc_attr($category->term_id); ?>"
+                                       <?php checked(in_array($category->term_id, $selected_pbt)); ?> />
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php else : ?>
+                    <p><?php echo esc_html__('No product categories found.', 'garden-sheds-delivery'); ?></p>
+                <?php endif; ?>
+                
+                <hr style="margin: 30px 0;" />
+                
+                <h2><?php echo esc_html__('Default Costs', 'garden-sheds-delivery'); ?></h2>
                 
                 <table class="form-table">
                     <tr>
@@ -110,102 +179,34 @@ class GSD_Admin {
                             </p>
                         </td>
                     </tr>
-                    <tr>
-                        <th scope="row">
-                            <label><?php echo esc_html__('Categories with Home Delivery', 'garden-sheds-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <?php if (!empty($categories) && !is_wp_error($categories)) : ?>
-                                <fieldset>
-                                    <?php foreach ($categories as $category) : ?>
-                                        <label style="display: block; margin-bottom: 8px;">
-                                            <input type="checkbox" 
-                                                   name="gsd_home_delivery_categories[]" 
-                                                   value="<?php echo esc_attr($category->term_id); ?>"
-                                                   <?php checked(in_array($category->term_id, $selected_categories)); ?> />
-                                            <?php echo esc_html($category->name); ?>
-                                        </label>
-                                    <?php endforeach; ?>
-                                </fieldset>
-                                <p class="description">
-                                    <?php echo esc_html__('Select categories where products should automatically have home delivery available.', 'garden-sheds-delivery'); ?>
-                                </p>
-                            <?php else : ?>
-                                <p><?php echo esc_html__('No product categories found.', 'garden-sheds-delivery'); ?></p>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label><?php echo esc_html__('Show Contact for Delivery Option', 'garden-sheds-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" 
-                                       name="gsd_show_contact_for_delivery" 
-                                       value="1"
-                                       <?php checked($show_contact_option, true); ?> />
-                                <?php echo esc_html__('Show "Home delivery may be possible. Contact us to see if we can arrange for home delivery." message', 'garden-sheds-delivery'); ?>
-                            </label>
-                            <p class="description">
-                                <?php echo esc_html__('When enabled, this message will be displayed on cart and checkout pages for products with delivery options.', 'garden-sheds-delivery'); ?>
-                            </p>
-                        </td>
-                    </tr>
                 </table>
                 
-                <hr style="margin: 30px 0;" />
+                <p class="submit">
+                    <input type="submit" name="gsd_save_settings" class="button-primary" value="<?php echo esc_attr__('Save Settings', 'garden-sheds-delivery'); ?>" />
+                </p>
+            </form>
+        </div>
+        <?php
+    }
+
+    /**
+     * Depot locations page
+     */
+    public function depots_page() {
+        if (isset($_POST['gsd_save_depots']) && check_admin_referer('gsd_save_depots')) {
+            $this->save_couriers();
+            echo '<div class="notice notice-success"><p>' . esc_html__('Depot locations saved successfully.', 'garden-sheds-delivery') . '</p></div>';
+        }
+
+        $couriers = GSD_Courier::get_couriers();
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html__('Courier Depot Locations', 'garden-sheds-delivery'); ?></h1>
+            
+            <form method="post" action="">
+                <?php wp_nonce_field('gsd_save_depots'); ?>
                 
-                <h2><?php echo esc_html__('Express Delivery Options', 'garden-sheds-delivery'); ?></h2>
-                <p><?php echo esc_html__('Configure an alternative paid delivery option for specific product categories.', 'garden-sheds-delivery'); ?></p>
-                
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label><?php echo esc_html__('Default Express Delivery Cost', 'garden-sheds-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <input type="number" 
-                                   name="gsd_default_express_delivery_cost" 
-                                   value="<?php echo esc_attr($express_delivery_cost); ?>" 
-                                   step="0.01" 
-                                   min="0" 
-                                   class="regular-text" />
-                            <p class="description">
-                                <?php echo esc_html__('Default cost for express delivery option. This can be overridden per-product.', 'garden-sheds-delivery'); ?>
-                            </p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label><?php echo esc_html__('Categories with Express Delivery', 'garden-sheds-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <?php if (!empty($categories) && !is_wp_error($categories)) : ?>
-                                <fieldset>
-                                    <?php foreach ($categories as $category) : ?>
-                                        <label style="display: block; margin-bottom: 8px;">
-                                            <input type="checkbox" 
-                                                   name="gsd_express_delivery_categories[]" 
-                                                   value="<?php echo esc_attr($category->term_id); ?>"
-                                                   <?php checked(in_array($category->term_id, $express_delivery_categories)); ?> />
-                                            <?php echo esc_html($category->name); ?>
-                                        </label>
-                                    <?php endforeach; ?>
-                                </fieldset>
-                                <p class="description">
-                                    <?php echo esc_html__('Select categories where products should have express delivery available.', 'garden-sheds-delivery'); ?>
-                                </p>
-                            <?php else : ?>
-                                <p><?php echo esc_html__('No product categories found.', 'garden-sheds-delivery'); ?></p>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                </table>
-                
-                <hr style="margin: 30px 0;" />
-                
-                <h2><?php echo esc_html__('Courier Companies', 'garden-sheds-delivery'); ?></h2>
+                <h2><?php echo esc_html__('Courier Companies and Depots', 'garden-sheds-delivery'); ?></h2>
                 <p><?php echo esc_html__('Manage courier companies and their depot locations.', 'garden-sheds-delivery'); ?></p>
                 
                 <table class="wp-list-table widefat fixed striped">
@@ -269,7 +270,7 @@ class GSD_Admin {
                 </table>
                 
                 <p class="submit">
-                    <input type="submit" name="gsd_save_couriers" class="button-primary" value="<?php echo esc_attr__('Save Settings', 'garden-sheds-delivery'); ?>" />
+                    <input type="submit" name="gsd_save_depots" class="button-primary" value="<?php echo esc_attr__('Save Depot Locations', 'garden-sheds-delivery'); ?>" />
                 </p>
             </form>
         </div>
@@ -346,31 +347,31 @@ class GSD_Admin {
      */
     private function save_delivery_settings() {
         // Save home delivery categories
-        $categories = isset($_POST['gsd_home_delivery_categories']) && is_array($_POST['gsd_home_delivery_categories']) 
-            ? array_map('intval', $_POST['gsd_home_delivery_categories']) 
-            : array();
-        update_option('gsd_home_delivery_categories', $categories);
+        $this->save_category_option('gsd_home_delivery_categories');
+
+        // Save contact delivery categories
+        $this->save_category_option('gsd_contact_delivery_categories');
+
+        // Save main freight categories
+        $this->save_category_option('gsd_main_freight_categories');
+
+        // Save PBT categories
+        $this->save_category_option('gsd_pbt_categories');
 
         // Save default home delivery cost
         $cost = isset($_POST['gsd_default_home_delivery_cost']) 
             ? sanitize_text_field($_POST['gsd_default_home_delivery_cost']) 
             : '150';
         update_option('gsd_default_home_delivery_cost', $cost);
+    }
 
-        // Save show contact for delivery option
-        $show_contact = isset($_POST['gsd_show_contact_for_delivery']) && $_POST['gsd_show_contact_for_delivery'] === '1';
-        update_option('gsd_show_contact_for_delivery', $show_contact);
-
-        // Save express delivery categories
-        $express_categories = isset($_POST['gsd_express_delivery_categories']) && is_array($_POST['gsd_express_delivery_categories']) 
-            ? array_map('intval', $_POST['gsd_express_delivery_categories']) 
+    /**
+     * Helper method to save category array options
+     */
+    private function save_category_option($option_name) {
+        $categories = isset($_POST[$option_name]) && is_array($_POST[$option_name]) 
+            ? array_map('intval', $_POST[$option_name]) 
             : array();
-        update_option('gsd_express_delivery_categories', $express_categories);
-
-        // Save default express delivery cost
-        $express_cost = isset($_POST['gsd_default_express_delivery_cost']) 
-            ? sanitize_text_field($_POST['gsd_default_express_delivery_cost']) 
-            : '15';
-        update_option('gsd_default_express_delivery_cost', $express_cost);
+        update_option($option_name, $categories);
     }
 }

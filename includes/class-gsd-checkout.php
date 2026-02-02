@@ -256,7 +256,7 @@ class GSD_Checkout {
             $checked = (isset($_POST['gsd_express_delivery']) && $_POST['gsd_express_delivery'] === '1') ? 'checked' : '';
             echo '<input type="checkbox" name="gsd_express_delivery" id="gsd_express_delivery" value="1" ' . $checked . ' /> ';
             echo sprintf(
-                esc_html__('Express Delivery (+%s)', 'garden-sheds-delivery'),
+                esc_html__('Delivery (+%s)', 'garden-sheds-delivery'),
                 wc_price($express_delivery_price)
             );
             echo '</label>';
@@ -332,7 +332,7 @@ class GSD_Checkout {
             woocommerce_form_field('gsd_express_delivery', array(
                 'type' => 'checkbox',
                 'class' => array('form-row-wide'),
-                'label' => sprintf(__('Express Delivery (+%s)', 'garden-sheds-delivery'), wc_price($express_delivery_price)),
+                'label' => sprintf(__('Delivery (+%s)', 'garden-sheds-delivery'), wc_price($express_delivery_price)),
                 'required' => false,
             ), $checkout->get_value('gsd_express_delivery'));
         }
@@ -446,7 +446,7 @@ class GSD_Checkout {
         
         if ($express_delivery) {
             $price = $this->get_cart_express_delivery_price();
-            $cart->add_fee(__('Express Delivery', 'garden-sheds-delivery'), $price);
+            $cart->add_fee(__('Delivery', 'garden-sheds-delivery'), $price);
         }
     }
 }

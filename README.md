@@ -29,19 +29,29 @@ A WooCommerce plugin for managing courier delivery options for garden sheds with
 
 Navigate to **Shed Delivery** in the WordPress admin sidebar:
 
-1. **Set Default Home Delivery Cost**: Enter the default cost (e.g., $150)
-2. **Select Categories**: Check product categories that should offer home delivery
-3. **Manage Depots**: Add or edit depot locations for courier companies
-4. Click **Save Settings**
+1. **Configure Delivery Options by Category**: Use the table to select which delivery options apply to each product category:
+   - Check **Home Delivery** for categories that should offer home delivery
+   - Check **Might be able to offer home delivery** for categories where delivery may be arranged on request
+   - Check **Main Freight** for categories using Main Freight courier
+   - Check **PBT** for categories using PBT courier
+2. **Set Default Home Delivery Cost**: Enter the default cost (e.g., $150)
+3. Click **Save Settings**
 
-### 2. Set Up WooCommerce Shipping
+### 2. Manage Depot Locations
+
+Navigate to **Shed Delivery > Depot Locations**:
+
+1. **Manage Depot Locations**: Add or edit depot locations for courier companies
+2. Click **Save Depot Locations**
+
+### 3. Set Up WooCommerce Shipping
 
 1. Go to **WooCommerce > Settings > Shipping**
 2. Select or create a shipping zone
 3. Add **Garden Sheds Delivery** as a shipping method
 4. Enable the method
 
-### 3. Configure Products
+### 4. Configure Products
 
 1. Edit a product in WooCommerce
 2. Go to the **Delivery Options** tab
@@ -53,12 +63,23 @@ Navigate to **Shed Delivery** in the WordPress admin sidebar:
 
 ### Global Settings (Shed Delivery Menu)
 
-#### Home Delivery Options
+#### Delivery Options by Category
+
+The main settings page displays a comprehensive table where you can configure delivery options for each product category:
+
+- **Category Column**: Lists all your WooCommerce product categories
+- **Home Delivery Column**: Enable home delivery option for products in this category
+- **Might be able to offer home delivery Column**: Show a message that delivery may be available upon request
+- **Main Freight Column**: Assign this category to Main Freight courier
+- **PBT Column**: Assign this category to PBT courier
+
+#### Default Costs
 
 - **Default Home Delivery Cost**: Set the default cost used across all products (can be overridden per product)
-- **Categories with Home Delivery**: Select which product categories should automatically offer home delivery
 
-#### Courier Companies
+### Depot Locations (Shed Delivery > Depot Locations)
+
+Manage courier companies and their depot locations on a dedicated page:
 
 The plugin comes with two default courier companies:
 - **Main Freight** with depot locations (Auckland, Wellington, Christchurch)
