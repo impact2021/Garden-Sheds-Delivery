@@ -181,24 +181,15 @@ class GSD_Product_Settings {
         
         // Check if product's category is in the allowed categories
         $product_categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'ids'));
-        $has_allowed_category = false;
         foreach ($product_categories as $cat_id) {
             if (in_array($cat_id, $allowed_categories)) {
-                $has_allowed_category = true;
-                break;
+                // Product is in an allowed category
+                return true;
             }
         }
         
-        // Only return true if product is in an allowed category
-        if (!$has_allowed_category) {
-            return false;
-        }
-        
-        // Product is in an allowed category, now check product-level setting
-        $product_setting = get_post_meta($product_id, '_gsd_home_delivery_available', true);
-        
-        // Return true if explicitly enabled on product, or if category has it enabled
-        return $product_setting === 'yes' || $has_allowed_category;
+        // Product is not in any allowed category
+        return false;
     }
 
     /**
@@ -229,24 +220,15 @@ class GSD_Product_Settings {
         
         // Check if product's category is in the allowed categories
         $product_categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'ids'));
-        $has_allowed_category = false;
         foreach ($product_categories as $cat_id) {
             if (in_array($cat_id, $allowed_categories)) {
-                $has_allowed_category = true;
-                break;
+                // Product is in an allowed category
+                return true;
             }
         }
         
-        // Only return true if product is in an allowed category
-        if (!$has_allowed_category) {
-            return false;
-        }
-        
-        // Product is in an allowed category, now check product-level setting
-        $product_setting = get_post_meta($product_id, '_gsd_contact_for_delivery', true);
-        
-        // Return true if explicitly enabled on product, or if category has it enabled
-        return $product_setting === 'yes' || $has_allowed_category;
+        // Product is not in any allowed category
+        return false;
     }
 
     /**
@@ -264,24 +246,15 @@ class GSD_Product_Settings {
         
         // Check if product's category is in the allowed categories
         $product_categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'ids'));
-        $has_allowed_category = false;
         foreach ($product_categories as $cat_id) {
             if (in_array($cat_id, $allowed_categories)) {
-                $has_allowed_category = true;
-                break;
+                // Product is in an allowed category
+                return true;
             }
         }
         
-        // Only return true if product is in an allowed category
-        if (!$has_allowed_category) {
-            return false;
-        }
-        
-        // Product is in an allowed category, now check product-level setting
-        $product_setting = get_post_meta($product_id, '_gsd_express_delivery_available', true);
-        
-        // Return true if explicitly enabled on product, or if category has it enabled
-        return $product_setting === 'yes' || $has_allowed_category;
+        // Product is not in any allowed category
+        return false;
     }
 
     /**
