@@ -216,7 +216,7 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
      * @param array $package Package information
      * @return float
      */
-    private function get_package_home_delivery_price($package) {
+    public function get_package_home_delivery_price($package) {
         return $this->get_max_delivery_price($package, 'home');
     }
 
@@ -242,7 +242,7 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
      * @param array $package Package information
      * @return float
      */
-    private function get_package_express_delivery_price($package) {
+    public function get_package_express_delivery_price($package) {
         return $this->get_max_delivery_price($package, 'express');
     }
 
