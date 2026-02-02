@@ -49,6 +49,13 @@ function gsd_init() {
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-order.php';
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-admin.php';
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-shipping-method.php';
+    
+    // Include new shipping method classes
+    require_once GSD_PLUGIN_DIR . 'includes/class-gsd-shipping-home-delivery.php';
+    require_once GSD_PLUGIN_DIR . 'includes/class-gsd-shipping-depot-pbt.php';
+    require_once GSD_PLUGIN_DIR . 'includes/class-gsd-shipping-depot-mainfreight.php';
+    require_once GSD_PLUGIN_DIR . 'includes/class-gsd-shipping-small-items.php';
+    require_once GSD_PLUGIN_DIR . 'includes/class-gsd-shipping-contact-delivery.php';
 
     // Initialize classes
     GSD_Courier::instance();
@@ -69,7 +76,16 @@ add_action('plugins_loaded', 'gsd_init');
  * Register shipping method
  */
 function gsd_register_shipping_method($methods) {
+    // Keep old method for backwards compatibility
     $methods['garden_sheds_delivery'] = 'GSD_Shipping_Method';
+    
+    // Register new shipping methods
+    $methods['gsd_home_delivery'] = 'GSD_Shipping_Home_Delivery';
+    $methods['gsd_depot_pbt'] = 'GSD_Shipping_Depot_PBT';
+    $methods['gsd_depot_mainfreight'] = 'GSD_Shipping_Depot_Mainfreight';
+    $methods['gsd_small_items'] = 'GSD_Shipping_Small_Items';
+    $methods['gsd_contact_delivery'] = 'GSD_Shipping_Contact_Delivery';
+    
     return $methods;
 }
 
