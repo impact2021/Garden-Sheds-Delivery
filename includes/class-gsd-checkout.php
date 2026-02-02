@@ -221,7 +221,7 @@ class GSD_Checkout {
                 $depots = GSD_Courier::get_depots($courier_slug);
                 
                 if (!empty($depots)) {
-                    echo '<p><strong>' . esc_html__('Select Depot Location:', 'garden-sheds-delivery') . '</strong></p>';
+                    echo '<p><strong>' . esc_html__('Pickup from depot:', 'garden-sheds-delivery') . '</strong></p>';
                     echo '<select name="gsd_depot" id="gsd_depot" class="input-text" style="width: 100%; max-width: 400px; padding: 8px;">';
                     echo '<option value="">' . esc_html__('-- Select Depot --', 'garden-sheds-delivery') . '</option>';
                     foreach ($depots as $depot) {
@@ -435,14 +435,28 @@ class GSD_Checkout {
             return;
         }
 
-        $home_delivery = isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === '1';
+        // Check POST data first, then fall back to session data
+        $home_delivery = false;
+        if (isset($_POST['post_data'])) {
+            parse_str($_POST['post_data'], $post_data);
+            $home_delivery = isset($post_data['gsd_home_delivery']) && $post_data['gsd_home_delivery'] === '1';
+        } elseif (isset($_POST['gsd_home_delivery'])) {
+            $home_delivery = $_POST['gsd_home_delivery'] === '1';
+        }
         
         if ($home_delivery) {
             $price = $this->get_cart_home_delivery_price();
             $cart->add_fee(__('Home Delivery', 'garden-sheds-delivery'), $price);
         }
 
-        $express_delivery = isset($_POST['gsd_express_delivery']) && $_POST['gsd_express_delivery'] === '1';
+        // Check POST data first, then fall back to session data
+        $express_delivery = false;
+        if (isset($_POST['post_data'])) {
+            parse_str($_POST['post_data'], $post_data);
+            $express_delivery = isset($post_data['gsd_express_delivery']) && $post_data['gsd_express_delivery'] === '1';
+        } elseif (isset($_POST['gsd_express_delivery'])) {
+            $express_delivery = $_POST['gsd_express_delivery'] === '1';
+        }
         
         if ($express_delivery) {
             $price = $this->get_cart_express_delivery_price();

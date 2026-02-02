@@ -84,17 +84,20 @@ class GSD_Admin {
         }
 
         $selected_home_delivery = get_option('gsd_home_delivery_categories', array());
+        $selected_express_delivery = get_option('gsd_express_delivery_categories', array());
         $selected_contact_delivery = get_option('gsd_contact_delivery_categories', array());
         $selected_main_freight = get_option('gsd_main_freight_categories', array());
         $selected_pbt = get_option('gsd_pbt_categories', array());
         
         // Ensure all selected values are arrays
         $selected_home_delivery = is_array($selected_home_delivery) ? $selected_home_delivery : array();
+        $selected_express_delivery = is_array($selected_express_delivery) ? $selected_express_delivery : array();
         $selected_contact_delivery = is_array($selected_contact_delivery) ? $selected_contact_delivery : array();
         $selected_main_freight = is_array($selected_main_freight) ? $selected_main_freight : array();
         $selected_pbt = is_array($selected_pbt) ? $selected_pbt : array();
         
         $default_cost = get_option('gsd_default_home_delivery_cost', '150');
+        $default_express_cost = get_option('gsd_default_express_delivery_cost', '15');
         
         // Get all product categories
         $categories = get_terms(array(
@@ -117,6 +120,7 @@ class GSD_Admin {
                         <tr>
                             <th><?php echo esc_html__('Category', 'garden-sheds-delivery'); ?></th>
                             <th style="text-align: center;"><?php echo esc_html__('Home Delivery', 'garden-sheds-delivery'); ?></th>
+                            <th style="text-align: center;"><?php echo esc_html__('Small Items', 'garden-sheds-delivery'); ?></th>
                             <th style="text-align: center;"><?php echo esc_html__('Might be able to offer home delivery', 'garden-sheds-delivery'); ?></th>
                             <th style="text-align: center;"><?php echo esc_html__('Main Freight', 'garden-sheds-delivery'); ?></th>
                             <th style="text-align: center;"><?php echo esc_html__('PBT', 'garden-sheds-delivery'); ?></th>
@@ -131,6 +135,12 @@ class GSD_Admin {
                                        name="gsd_home_delivery_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
                                        <?php checked(in_array($category->term_id, $selected_home_delivery)); ?> />
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" 
+                                       name="gsd_express_delivery_categories[]" 
+                                       value="<?php echo esc_attr($category->term_id); ?>"
+                                       <?php checked(in_array($category->term_id, $selected_express_delivery)); ?> />
                             </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
@@ -176,6 +186,22 @@ class GSD_Admin {
                                    class="regular-text" />
                             <p class="description">
                                 <?php echo esc_html__('Default cost for home delivery. This can be overridden per-product.', 'garden-sheds-delivery'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label><?php echo esc_html__('Default Small Items Delivery Cost', 'garden-sheds-delivery'); ?></label>
+                        </th>
+                        <td>
+                            <input type="number" 
+                                   name="gsd_default_express_delivery_cost" 
+                                   value="<?php echo esc_attr($default_express_cost); ?>" 
+                                   step="0.01" 
+                                   min="0" 
+                                   class="regular-text" />
+                            <p class="description">
+                                <?php echo esc_html__('Default cost for small items delivery. This can be overridden per-product.', 'garden-sheds-delivery'); ?>
                             </p>
                         </td>
                     </tr>
@@ -349,6 +375,9 @@ class GSD_Admin {
         // Save home delivery categories
         $this->save_category_option('gsd_home_delivery_categories');
 
+        // Save express delivery categories
+        $this->save_category_option('gsd_express_delivery_categories');
+
         // Save contact delivery categories
         $this->save_category_option('gsd_contact_delivery_categories');
 
@@ -363,6 +392,12 @@ class GSD_Admin {
             ? sanitize_text_field($_POST['gsd_default_home_delivery_cost']) 
             : '150';
         update_option('gsd_default_home_delivery_cost', $cost);
+
+        // Save default express delivery cost
+        $express_cost = isset($_POST['gsd_default_express_delivery_cost']) 
+            ? sanitize_text_field($_POST['gsd_default_express_delivery_cost']) 
+            : '15';
+        update_option('gsd_default_express_delivery_cost', $express_cost);
     }
 
     /**
