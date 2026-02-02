@@ -223,17 +223,7 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
      * @return float
      */
     private function get_package_home_delivery_price($package) {
-        $max_price = 0;
-        foreach ($package['contents'] as $item) {
-            $product_id = $item['product_id'];
-            if (GSD_Product_Settings::is_home_delivery_available($product_id)) {
-                $price = GSD_Product_Settings::get_home_delivery_price($product_id);
-                if ($price > $max_price) {
-                    $max_price = $price;
-                }
-            }
-        }
-        return $max_price;
+        return $this->get_max_delivery_price($package, 'home');
     }
 
     /**
@@ -259,10 +249,27 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
      * @return float
      */
     private function get_package_express_delivery_price($package) {
+        return $this->get_max_delivery_price($package, 'express');
+    }
+
+    /**
+     * Get maximum delivery price for package by type
+     *
+     * @param array $package Package information
+     * @param string $type Delivery type: 'home' or 'express'
+     * @return float
+     */
+    private function get_max_delivery_price($package, $type) {
         $max_price = 0;
         foreach ($package['contents'] as $item) {
             $product_id = $item['product_id'];
-            if (GSD_Product_Settings::is_express_delivery_available($product_id)) {
+            
+            if ($type === 'home' && GSD_Product_Settings::is_home_delivery_available($product_id)) {
+                $price = GSD_Product_Settings::get_home_delivery_price($product_id);
+                if ($price > $max_price) {
+                    $max_price = $price;
+                }
+            } elseif ($type === 'express' && GSD_Product_Settings::is_express_delivery_available($product_id)) {
                 $price = GSD_Product_Settings::get_express_delivery_price($product_id);
                 if ($price > $max_price) {
                     $max_price = $price;

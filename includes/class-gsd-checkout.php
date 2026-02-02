@@ -132,57 +132,50 @@ class GSD_Checkout {
         
         // Check if this is home delivery
         if (strpos($method_id, ':home_delivery') !== false) {
-            $cost = $method->get_cost();
-            
-            if ($cost > 0) {
-                // Get tax if applicable
-                $taxes = $method->get_taxes();
-                $tax_amount = 0;
-                if (!empty($taxes) && is_array($taxes)) {
-                    $tax_amount = array_sum($taxes);
-                }
-                
-                // Build label with cost breakdown
-                $label = __('Home Delivery', 'garden-sheds-delivery');
-                
-                if ($tax_amount > 0) {
-                    $total_with_tax = $cost + $tax_amount;
-                    $label .= sprintf(
-                        ' <span class="gsd-cost-breakdown">(%s <small>inc. GST</small>)</span>',
-                        wc_price($total_with_tax)
-                    );
-                } else {
-                    $label .= sprintf(' (%s)', wc_price($cost));
-                }
-            }
+            $label = $this->build_delivery_label(__('Home Delivery', 'garden-sheds-delivery'), $method);
         } elseif (strpos($method_id, ':express_delivery') !== false) {
             // Check if this is express/small item delivery
-            $cost = $method->get_cost();
-            
-            if ($cost > 0) {
-                // Get tax if applicable
-                $taxes = $method->get_taxes();
-                $tax_amount = 0;
-                if (!empty($taxes) && is_array($taxes)) {
-                    $tax_amount = array_sum($taxes);
-                }
-                
-                // Build label with cost breakdown
-                $label = __('Small Item Delivery', 'garden-sheds-delivery');
-                
-                if ($tax_amount > 0) {
-                    $total_with_tax = $cost + $tax_amount;
-                    $label .= sprintf(
-                        ' <span class="gsd-cost-breakdown">(%s <small>inc. GST</small>)</span>',
-                        wc_price($total_with_tax)
-                    );
-                } else {
-                    $label .= sprintf(' (%s)', wc_price($cost));
-                }
-            }
+            $label = $this->build_delivery_label(__('Small Item Delivery', 'garden-sheds-delivery'), $method);
         } elseif (strpos($method_id, ':depot:') !== false) {
             // For depot pickup, just show the depot name
             $label = $method->get_label();
+        }
+        
+        return $label;
+    }
+
+    /**
+     * Build delivery label with cost and tax information
+     *
+     * @param string $base_label The base label text
+     * @param object $method The shipping method object
+     * @return string Formatted label with cost breakdown
+     */
+    private function build_delivery_label($base_label, $method) {
+        $cost = $method->get_cost();
+        
+        if ($cost <= 0) {
+            return $base_label;
+        }
+        
+        // Get tax if applicable
+        $taxes = $method->get_taxes();
+        $tax_amount = 0;
+        if (!empty($taxes) && is_array($taxes)) {
+            $tax_amount = array_sum($taxes);
+        }
+        
+        // Build label with cost breakdown
+        $label = $base_label;
+        
+        if ($tax_amount > 0) {
+            $total_with_tax = $cost + $tax_amount;
+            $label .= sprintf(
+                ' <span class="gsd-cost-breakdown">(%s <small>inc. GST</small>)</span>',
+                wc_price($total_with_tax)
+            );
+        } else {
+            $label .= sprintf(' (%s)', wc_price($cost));
         }
         
         return $label;
