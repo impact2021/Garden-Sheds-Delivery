@@ -75,15 +75,51 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
             return;
         }
 
-        // Add the shipping rate
-        $rate = array(
-            'id' => $this->get_rate_id(),
-            'label' => $this->title,
-            'cost' => 0, // Base cost is 0 (depot pickup is free)
-            'package' => $package,
-        );
+        // Get courier and home delivery info from cart
+        $courier_slug = $this->get_package_courier($package);
+        $has_home_delivery = $this->package_has_home_delivery($package);
+        $home_delivery_price = $this->get_package_home_delivery_price($package);
 
-        $this->add_rate($rate);
+        // Add depot pickup rates if courier is assigned
+        if ($courier_slug) {
+            $courier = GSD_Courier::get_courier($courier_slug);
+            $is_enabled = isset($courier['enabled']) ? $courier['enabled'] : true;
+            
+            if ($is_enabled) {
+                $depots = GSD_Courier::get_depots($courier_slug);
+                
+                if (!empty($depots)) {
+                    foreach ($depots as $depot) {
+                        $rate = array(
+                            'id' => $this->get_rate_id() . ':depot:' . $depot['id'],
+                            'label' => sprintf(__('Pickup from %s', 'garden-sheds-delivery'), $depot['name']),
+                            'cost' => 0, // Depot pickup is free
+                            'meta_data' => array(
+                                'depot_id' => $depot['id'],
+                                'depot_name' => $depot['name'],
+                                'courier_name' => $courier['name'],
+                                'delivery_type' => 'depot'
+                            ),
+                        );
+                        $this->add_rate($rate);
+                    }
+                }
+            }
+        }
+
+        // Add home delivery rate if available
+        if ($has_home_delivery && $home_delivery_price > 0) {
+            $rate = array(
+                'id' => $this->get_rate_id() . ':home_delivery',
+                'label' => sprintf(__('Home Delivery (+%s)', 'garden-sheds-delivery'), wc_price($home_delivery_price)),
+                'cost' => $home_delivery_price,
+                'meta_data' => array(
+                    'delivery_type' => 'home_delivery',
+                    'home_delivery_price' => $home_delivery_price
+                ),
+            );
+            $this->add_rate($rate);
+        }
     }
 
     /**
@@ -106,5 +142,58 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
             }
         }
         return false;
+    }
+
+    /**
+     * Get courier for package items
+     *
+     * @param array $package Package information
+     * @return string|null
+     */
+    private function get_package_courier($package) {
+        foreach ($package['contents'] as $item) {
+            $product_id = $item['product_id'];
+            $courier = GSD_Product_Settings::get_product_courier($product_id);
+            if (!empty($courier)) {
+                return $courier;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if package has home delivery option
+     *
+     * @param array $package Package information
+     * @return bool
+     */
+    private function package_has_home_delivery($package) {
+        foreach ($package['contents'] as $item) {
+            $product_id = $item['product_id'];
+            if (GSD_Product_Settings::is_home_delivery_available($product_id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get home delivery price for package
+     *
+     * @param array $package Package information
+     * @return float
+     */
+    private function get_package_home_delivery_price($package) {
+        $max_price = 0;
+        foreach ($package['contents'] as $item) {
+            $product_id = $item['product_id'];
+            if (GSD_Product_Settings::is_home_delivery_available($product_id)) {
+                $price = GSD_Product_Settings::get_home_delivery_price($product_id);
+                if ($price > $max_price) {
+                    $max_price = $price;
+                }
+            }
+        }
+        return $max_price;
     }
 }
