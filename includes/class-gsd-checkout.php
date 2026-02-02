@@ -187,8 +187,8 @@ class GSD_Checkout {
             $home_delivery_price = $this->get_cart_home_delivery_price();
             echo '<p style="margin-top: 15px;">';
             echo '<label>';
-            $checked = (isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === 'yes') ? 'checked' : '';
-            echo '<input type="checkbox" name="gsd_home_delivery" id="gsd_home_delivery" value="yes" ' . $checked . ' /> ';
+            $checked = (isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === '1') ? 'checked' : '';
+            echo '<input type="checkbox" name="gsd_home_delivery" id="gsd_home_delivery" value="1" ' . $checked . ' /> ';
             echo sprintf(
                 esc_html__('Home Delivery (+%s)', 'garden-sheds-delivery'),
                 wc_price($home_delivery_price)
