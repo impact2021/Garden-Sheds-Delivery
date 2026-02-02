@@ -82,17 +82,18 @@ class GSD_Product_Settings {
                 ));
 
                 // Home delivery price
+                $default_cost = get_option('gsd_default_home_delivery_cost', '150');
                 woocommerce_wp_text_input(array(
                     'id' => '_gsd_home_delivery_price',
                     'label' => __('Home Delivery Price', 'garden-sheds-delivery') . ' (' . get_woocommerce_currency_symbol() . ')',
                     'desc_tip' => true,
-                    'description' => __('Price for home delivery option.', 'garden-sheds-delivery'),
+                    'description' => sprintf(__('Price for home delivery option. Leave empty to use default (%s).', 'garden-sheds-delivery'), wc_price($default_cost)),
                     'type' => 'number',
                     'custom_attributes' => array(
                         'step' => '0.01',
                         'min' => '0',
                     ),
-                    'value' => get_post_meta($post->ID, '_gsd_home_delivery_price', true) ?: '150',
+                    'value' => get_post_meta($post->ID, '_gsd_home_delivery_price', true),
                 ));
 
                 // Contact for home delivery option
@@ -118,7 +119,9 @@ class GSD_Product_Settings {
         $home_delivery = isset($_POST['_gsd_home_delivery_available']) ? 'yes' : 'no';
         update_post_meta($post_id, '_gsd_home_delivery_available', $home_delivery);
 
-        $home_delivery_price = isset($_POST['_gsd_home_delivery_price']) ? sanitize_text_field($_POST['_gsd_home_delivery_price']) : '150';
+        $home_delivery_price = isset($_POST['_gsd_home_delivery_price']) && !empty($_POST['_gsd_home_delivery_price']) 
+            ? sanitize_text_field($_POST['_gsd_home_delivery_price']) 
+            : '';
         update_post_meta($post_id, '_gsd_home_delivery_price', $home_delivery_price);
 
         $contact_for_delivery = isset($_POST['_gsd_contact_for_delivery']) ? 'yes' : 'no';
@@ -136,7 +139,24 @@ class GSD_Product_Settings {
      * Check if home delivery is available for product
      */
     public static function is_home_delivery_available($product_id) {
-        return get_post_meta($product_id, '_gsd_home_delivery_available', true) === 'yes';
+        // First check if explicitly set on product
+        $product_setting = get_post_meta($product_id, '_gsd_home_delivery_available', true);
+        if ($product_setting === 'yes') {
+            return true;
+        }
+        
+        // Check if product's category is in the home delivery categories
+        $allowed_categories = get_option('gsd_home_delivery_categories', array());
+        if (!empty($allowed_categories)) {
+            $product_categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'ids'));
+            foreach ($product_categories as $cat_id) {
+                if (in_array($cat_id, $allowed_categories)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -144,7 +164,13 @@ class GSD_Product_Settings {
      */
     public static function get_home_delivery_price($product_id) {
         $price = get_post_meta($product_id, '_gsd_home_delivery_price', true);
-        return $price ? floatval($price) : 150.00;
+        if (!empty($price)) {
+            return floatval($price);
+        }
+        
+        // Use default cost from settings
+        $default_cost = get_option('gsd_default_home_delivery_cost', '150');
+        return floatval($default_cost);
     }
 
     /**

@@ -38,13 +38,14 @@ class GSD_Admin {
      * Add admin menu
      */
     public function add_admin_menu() {
-        add_submenu_page(
-            'woocommerce',
-            __('Garden Sheds Delivery', 'garden-sheds-delivery'),
+        add_menu_page(
+            __('Shed Delivery', 'garden-sheds-delivery'),
             __('Shed Delivery', 'garden-sheds-delivery'),
             'manage_woocommerce',
             'garden-sheds-delivery',
-            array($this, 'settings_page')
+            array($this, 'settings_page'),
+            'dashicons-store',
+            56
         );
     }
 
@@ -53,6 +54,8 @@ class GSD_Admin {
      */
     public function register_settings() {
         register_setting('gsd_settings', 'gsd_courier_companies');
+        register_setting('gsd_settings', 'gsd_home_delivery_categories');
+        register_setting('gsd_settings', 'gsd_default_home_delivery_cost');
     }
 
     /**
@@ -61,16 +64,74 @@ class GSD_Admin {
     public function settings_page() {
         if (isset($_POST['gsd_save_couriers']) && check_admin_referer('gsd_save_couriers')) {
             $this->save_couriers();
+            $this->save_delivery_settings();
             echo '<div class="notice notice-success"><p>' . esc_html__('Settings saved successfully.', 'garden-sheds-delivery') . '</p></div>';
         }
 
         $couriers = GSD_Courier::get_couriers();
+        $selected_categories = get_option('gsd_home_delivery_categories', array());
+        $default_cost = get_option('gsd_default_home_delivery_cost', '150');
+        
+        // Get all product categories
+        $categories = get_terms(array(
+            'taxonomy' => 'product_cat',
+            'hide_empty' => false,
+        ));
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html__('Garden Sheds Delivery Settings', 'garden-sheds-delivery'); ?></h1>
+            <h1><?php echo esc_html__('Shed Delivery Settings', 'garden-sheds-delivery'); ?></h1>
             
             <form method="post" action="">
                 <?php wp_nonce_field('gsd_save_couriers'); ?>
+                
+                <h2><?php echo esc_html__('Home Delivery Options', 'garden-sheds-delivery'); ?></h2>
+                <p><?php echo esc_html__('Configure which product categories should offer home delivery and set the default cost.', 'garden-sheds-delivery'); ?></p>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label><?php echo esc_html__('Default Home Delivery Cost', 'garden-sheds-delivery'); ?></label>
+                        </th>
+                        <td>
+                            <input type="number" 
+                                   name="gsd_default_home_delivery_cost" 
+                                   value="<?php echo esc_attr($default_cost); ?>" 
+                                   step="0.01" 
+                                   min="0" 
+                                   class="regular-text" />
+                            <p class="description">
+                                <?php echo esc_html__('Default cost for home delivery. This can be overridden per-product.', 'garden-sheds-delivery'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label><?php echo esc_html__('Categories with Home Delivery', 'garden-sheds-delivery'); ?></label>
+                        </th>
+                        <td>
+                            <?php if (!empty($categories) && !is_wp_error($categories)) : ?>
+                                <fieldset>
+                                    <?php foreach ($categories as $category) : ?>
+                                        <label style="display: block; margin-bottom: 8px;">
+                                            <input type="checkbox" 
+                                                   name="gsd_home_delivery_categories[]" 
+                                                   value="<?php echo esc_attr($category->term_id); ?>"
+                                                   <?php checked(in_array($category->term_id, $selected_categories)); ?> />
+                                            <?php echo esc_html($category->name); ?>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </fieldset>
+                                <p class="description">
+                                    <?php echo esc_html__('Select categories where products should automatically have home delivery available.', 'garden-sheds-delivery'); ?>
+                                </p>
+                            <?php else : ?>
+                                <p><?php echo esc_html__('No product categories found.', 'garden-sheds-delivery'); ?></p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+                
+                <hr style="margin: 30px 0;" />
                 
                 <h2><?php echo esc_html__('Courier Companies', 'garden-sheds-delivery'); ?></h2>
                 <p><?php echo esc_html__('Manage courier companies and their depot locations.', 'garden-sheds-delivery'); ?></p>
@@ -195,5 +256,22 @@ class GSD_Admin {
         }
 
         GSD_Courier::update_couriers($couriers);
+    }
+
+    /**
+     * Save delivery settings
+     */
+    private function save_delivery_settings() {
+        // Save home delivery categories
+        $categories = isset($_POST['gsd_home_delivery_categories']) && is_array($_POST['gsd_home_delivery_categories']) 
+            ? array_map('intval', $_POST['gsd_home_delivery_categories']) 
+            : array();
+        update_option('gsd_home_delivery_categories', $categories);
+
+        // Save default home delivery cost
+        $cost = isset($_POST['gsd_default_home_delivery_cost']) 
+            ? sanitize_text_field($_POST['gsd_default_home_delivery_cost']) 
+            : '150';
+        update_option('gsd_default_home_delivery_cost', $cost);
     }
 }

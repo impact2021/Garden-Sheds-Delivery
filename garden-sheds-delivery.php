@@ -48,6 +48,7 @@ function gsd_init() {
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-checkout.php';
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-order.php';
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-admin.php';
+    require_once GSD_PLUGIN_DIR . 'includes/class-gsd-shipping-method.php';
 
     // Initialize classes
     GSD_Courier::instance();
@@ -58,8 +59,19 @@ function gsd_init() {
     if (is_admin()) {
         GSD_Admin::instance();
     }
+    
+    // Register shipping method
+    add_filter('woocommerce_shipping_methods', 'gsd_register_shipping_method');
 }
 add_action('plugins_loaded', 'gsd_init');
+
+/**
+ * Register shipping method
+ */
+function gsd_register_shipping_method($methods) {
+    $methods['garden_sheds_delivery'] = 'GSD_Shipping_Method';
+    return $methods;
+}
 
 /**
  * Display WooCommerce missing notice
