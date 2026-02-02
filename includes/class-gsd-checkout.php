@@ -344,7 +344,7 @@ class GSD_Checkout {
             return;
         }
 
-        $home_delivery = isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === 'yes';
+        $home_delivery = isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === '1';
         
         if ($home_delivery) {
             $price = $this->get_cart_home_delivery_price();
