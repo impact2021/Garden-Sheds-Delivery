@@ -32,6 +32,11 @@ jQuery(document).ready(function($) {
         updateCheckout();
     });
 
+    // Express delivery checkbox change
+    $(document.body).on('change', '#gsd_express_delivery', function() {
+        updateCheckout();
+    });
+
     // Initialize on page load
     if ($('#gsd_home_delivery').is(':checked')) {
         $('#gsd_depot').prop('required', false);
