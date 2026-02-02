@@ -78,7 +78,7 @@ class GSD_Product_Settings {
                     'id' => '_gsd_home_delivery_available',
                     'label' => __('Home Delivery Available', 'garden-sheds-delivery'),
                     'desc_tip' => true,
-                    'description' => __('Enable optional home delivery for this product.', 'garden-sheds-delivery'),
+                    'description' => __('Enable optional home delivery for this product with immediate pricing.', 'garden-sheds-delivery'),
                 ));
 
                 // Home delivery price
@@ -93,6 +93,14 @@ class GSD_Product_Settings {
                         'min' => '0',
                     ),
                     'value' => get_post_meta($post->ID, '_gsd_home_delivery_price', true) ?: '150',
+                ));
+
+                // Contact for home delivery option
+                woocommerce_wp_checkbox(array(
+                    'id' => '_gsd_contact_for_delivery',
+                    'label' => __('Show "Contact Us" for Home Delivery', 'garden-sheds-delivery'),
+                    'desc_tip' => true,
+                    'description' => __('Display message that home delivery may be available - customer should contact after ordering.', 'garden-sheds-delivery'),
                 ));
                 ?>
             </div>
@@ -112,6 +120,9 @@ class GSD_Product_Settings {
 
         $home_delivery_price = isset($_POST['_gsd_home_delivery_price']) ? sanitize_text_field($_POST['_gsd_home_delivery_price']) : '150';
         update_post_meta($post_id, '_gsd_home_delivery_price', $home_delivery_price);
+
+        $contact_for_delivery = isset($_POST['_gsd_contact_for_delivery']) ? 'yes' : 'no';
+        update_post_meta($post_id, '_gsd_contact_for_delivery', $contact_for_delivery);
     }
 
     /**
@@ -134,5 +145,12 @@ class GSD_Product_Settings {
     public static function get_home_delivery_price($product_id) {
         $price = get_post_meta($product_id, '_gsd_home_delivery_price', true);
         return $price ? floatval($price) : 150.00;
+    }
+
+    /**
+     * Check if "contact for delivery" option is enabled
+     */
+    public static function is_contact_for_delivery($product_id) {
+        return get_post_meta($product_id, '_gsd_contact_for_delivery', true) === 'yes';
     }
 }

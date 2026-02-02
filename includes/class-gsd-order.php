@@ -82,6 +82,15 @@ class GSD_Order {
             echo '</tr>';
         }
 
+        // Show contact for delivery notice if applicable
+        $contact_for_delivery = $order->get_meta('_gsd_contact_for_delivery');
+        if ($contact_for_delivery === 'yes') {
+            echo '<tr>';
+            echo '<th>' . esc_html__('Note:', 'garden-sheds-delivery') . '</th>';
+            echo '<td><em>' . esc_html__('Home delivery may be an option - please contact us to discuss.', 'garden-sheds-delivery') . '</em></td>';
+            echo '</tr>';
+        }
+
         echo '</table>';
         echo '</section>';
     }
@@ -125,6 +134,12 @@ class GSD_Order {
         } elseif ($depot_name) {
             echo __('Pickup Depot:', 'garden-sheds-delivery') . ' ' . $depot_name . "\n";
         }
+
+        // Show contact for delivery notice if applicable
+        $contact_for_delivery = $order->get_meta('_gsd_contact_for_delivery');
+        if ($contact_for_delivery === 'yes') {
+            echo __('Note:', 'garden-sheds-delivery') . ' ' . __('Home delivery may be an option - please contact us to discuss.', 'garden-sheds-delivery') . "\n";
+        }
     }
 
     /**
@@ -156,6 +171,15 @@ class GSD_Order {
             echo '</p>';
         } elseif ($depot_name) {
             echo '<p><strong>' . esc_html__('Pickup Depot:', 'garden-sheds-delivery') . '</strong> ' . esc_html($depot_name) . '</p>';
+        }
+
+        // Show contact for delivery notice if applicable
+        $contact_for_delivery = $order->get_meta('_gsd_contact_for_delivery');
+        if ($contact_for_delivery === 'yes') {
+            echo '<p style="padding: 10px; background: #e7f3ff; border-left: 3px solid #2196F3;">';
+            echo '<strong>' . esc_html__('Note:', 'garden-sheds-delivery') . '</strong> ';
+            echo '<em>' . esc_html__('Home delivery may be an option - customer should contact us to discuss.', 'garden-sheds-delivery') . '</em>';
+            echo '</p>';
         }
 
         echo '</div>';

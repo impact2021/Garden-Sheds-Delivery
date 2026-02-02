@@ -39,8 +39,26 @@
     cursor: pointer;
 }
 
+.gsd-contact-delivery-notice {
+    margin-top: 15px;
+    padding: 12px;
+    background: #e7f3ff;
+    border-left: 4px solid #2196F3;
+    border-radius: 3px;
+}
+
+.gsd-contact-delivery-notice p {
+    margin: 0;
+    color: #333;
+    line-height: 1.6;
+}
+
 .gsd-checkout-fields {
     margin-bottom: 20px;
+}
+
+.gsd-checkout-fields .gsd-contact-delivery-notice {
+    margin-top: 15px;
 }
 
 .woocommerce-delivery-details {

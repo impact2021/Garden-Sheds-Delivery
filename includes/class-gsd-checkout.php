@@ -111,6 +111,23 @@ class GSD_Checkout {
     }
 
     /**
+     * Check if any product in cart has "contact for delivery" option
+     */
+    private function cart_has_contact_for_delivery() {
+        if (!WC()->cart) {
+            return false;
+        }
+
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            $product_id = $cart_item['product_id'];
+            if (GSD_Product_Settings::is_contact_for_delivery($product_id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Get home delivery price for cart
      */
     private function get_cart_home_delivery_price() {
@@ -175,6 +192,16 @@ class GSD_Checkout {
             echo '</p>';
         }
 
+        // Contact for delivery option
+        if ($this->cart_has_contact_for_delivery()) {
+            echo '<div class="gsd-contact-delivery-notice" style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 3px;">';
+            echo '<p style="margin: 0; color: #333;">';
+            echo '<strong>' . esc_html__('Note:', 'garden-sheds-delivery') . '</strong> ';
+            echo esc_html__('Home delivery may be an option - please contact us after completing your order.', 'garden-sheds-delivery');
+            echo '</p>';
+            echo '</div>';
+        }
+
         echo '</div>';
     }
 
@@ -220,6 +247,16 @@ class GSD_Checkout {
                 'label' => sprintf(__('Home Delivery (+%s)', 'garden-sheds-delivery'), wc_price($home_delivery_price)),
                 'required' => false,
             ), $checkout->get_value('gsd_home_delivery'));
+        }
+
+        // Contact for delivery notice
+        if ($this->cart_has_contact_for_delivery()) {
+            echo '<div class="gsd-contact-delivery-notice" style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 3px;">';
+            echo '<p style="margin: 0; color: #333;">';
+            echo '<strong>' . esc_html__('Note:', 'garden-sheds-delivery') . '</strong> ';
+            echo esc_html__('Home delivery may be an option - please contact us after completing your order.', 'garden-sheds-delivery');
+            echo '</p>';
+            echo '</div>';
         }
 
         echo '</div>';
@@ -271,6 +308,11 @@ class GSD_Checkout {
         if ($home_delivery) {
             $price = $this->get_cart_home_delivery_price();
             $order->update_meta_data('_gsd_home_delivery_price', $price);
+        }
+
+        // Save "contact for delivery" flag if applicable
+        if ($this->cart_has_contact_for_delivery()) {
+            $order->update_meta_data('_gsd_contact_for_delivery', 'yes');
         }
     }
 
