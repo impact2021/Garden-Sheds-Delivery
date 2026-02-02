@@ -35,6 +35,9 @@ class GSD_Checkout {
         
         // Enqueue scripts and styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        
+        // Add custom display for shipping in cart and checkout totals
+        add_filter('woocommerce_cart_shipping_method_full_label', array($this, 'customize_shipping_label'), 10, 2);
     }
 
     /**
@@ -51,7 +54,7 @@ class GSD_Checkout {
      * Save shipping method data to order
      * 
      * Extracts delivery information from the selected shipping method rate
-     * and saves it as order meta data. Handles both depot pickup and home delivery.
+     * and saves it as order meta data. Handles depot pickup, home delivery, and small item delivery.
      *
      * @param WC_Order $order The order object being created
      */
@@ -70,7 +73,7 @@ class GSD_Checkout {
                 // Extract meta data from the shipping method
                 $meta_data = $shipping_method->get_meta_data();
                 
-                // Check if this is a depot pickup or home delivery
+                // Check if this is a depot pickup or home delivery or express delivery
                 if (strpos($rate_id, ':depot:') !== false) {
                     // Depot pickup
                     foreach ($meta_data as $meta) {
@@ -84,17 +87,98 @@ class GSD_Checkout {
                         }
                     }
                     $order->update_meta_data('_gsd_home_delivery', 'no');
+                    $order->update_meta_data('_gsd_express_delivery', 'no');
                 } elseif (strpos($rate_id, ':home_delivery') !== false) {
                     // Home delivery
                     $order->update_meta_data('_gsd_home_delivery', 'yes');
+                    $order->update_meta_data('_gsd_express_delivery', 'no');
                     foreach ($meta_data as $meta) {
                         $data = $meta->get_data();
                         if ($data['key'] === 'home_delivery_price') {
                             $order->update_meta_data('_gsd_home_delivery_price', $data['value']);
                         }
                     }
+                } elseif (strpos($rate_id, ':express_delivery') !== false) {
+                    // Small item delivery
+                    $order->update_meta_data('_gsd_home_delivery', 'no');
+                    $order->update_meta_data('_gsd_express_delivery', 'yes');
+                    foreach ($meta_data as $meta) {
+                        $data = $meta->get_data();
+                        if ($data['key'] === 'express_delivery_price') {
+                            $order->update_meta_data('_gsd_express_delivery_price', $data['value']);
+                        }
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * Customize shipping method label in cart and checkout
+     * 
+     * Shows cost breakdown including GST for home delivery and small item delivery
+     *
+     * @param string $label The shipping method label
+     * @param object $method The shipping method object
+     * @return string Modified label
+     */
+    public function customize_shipping_label($label, $method) {
+        // Only customize our shipping method
+        if ($method->get_method_id() !== 'garden_sheds_delivery') {
+            return $label;
+        }
+
+        $method_id = $method->get_id();
+        
+        // Check if this is home delivery
+        if (strpos($method_id, ':home_delivery') !== false) {
+            $label = $this->build_delivery_label(__('Home Delivery', 'garden-sheds-delivery'), $method);
+        } elseif (strpos($method_id, ':express_delivery') !== false) {
+            // Check if this is express/small item delivery
+            $label = $this->build_delivery_label(__('Small Item Delivery', 'garden-sheds-delivery'), $method);
+        } elseif (strpos($method_id, ':depot:') !== false) {
+            // For depot pickup, just show the depot name
+            $label = $method->get_label();
+        }
+        
+        return $label;
+    }
+
+    /**
+     * Build delivery label with cost and tax information
+     *
+     * @param string $base_label The base label text
+     * @param object $method The shipping method object
+     * @return string Formatted label with cost breakdown
+     */
+    private function build_delivery_label($base_label, $method) {
+        $cost = $method->get_cost();
+        
+        if ($cost <= 0) {
+            return $base_label;
+        }
+        
+        // Get tax if applicable
+        $taxes = $method->get_taxes();
+        $tax_amount = 0;
+        if (!empty($taxes) && is_array($taxes)) {
+            $tax_amount = array_sum($taxes);
+        }
+        
+        // Build label with cost breakdown
+        $label = $base_label;
+        
+        if ($tax_amount > 0) {
+            $total_with_tax = $cost + $tax_amount;
+            $label .= sprintf(
+                ' <span class="gsd-cost-breakdown">(%s <small>%s</small>)</span>',
+                wc_price($total_with_tax),
+                __('inc. GST', 'garden-sheds-delivery')
+            );
+        } else {
+            $label .= sprintf(' (%s)', wc_price($cost));
+        }
+        
+        return $label;
     }
 }

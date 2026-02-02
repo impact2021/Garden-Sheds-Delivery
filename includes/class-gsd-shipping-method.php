@@ -101,7 +101,7 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
                             $rate = array(
                                 'id' => $this->get_rate_id() . ':depot:' . $depot['id'],
                                 'label' => sprintf(__('Pickup from %s', 'garden-sheds-delivery'), $depot['name']),
-                                'cost' => '0', // Depot pickup is free - use string for WooCommerce compatibility
+                                'cost' => 0, // Depot pickup is free
                                 'meta_data' => array(
                                     'depot_id' => $depot['id'],
                                     'depot_name' => $depot['name'],
@@ -118,16 +118,38 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
 
         // Add home delivery rate if available
         if ($has_home_delivery && $home_delivery_price > 0) {
-            // Ensure cost is a string for WooCommerce compatibility
-            $delivery_cost = number_format((float)$home_delivery_price, 2, '.', '');
+            // WooCommerce expects numeric cost, not formatted string
+            $delivery_cost = (float)$home_delivery_price;
             
             $rate = array(
                 'id' => $this->get_rate_id() . ':home_delivery',
-                'label' => sprintf(__('Home Delivery (+%s)', 'garden-sheds-delivery'), wc_price($delivery_cost)),
-                'cost' => $delivery_cost, // String format for WooCommerce
+                'label' => __('Home Delivery', 'garden-sheds-delivery'),
+                'cost' => $delivery_cost, // Pass as numeric value
+                'calc_tax' => 'per_order', // Enable tax calculation for this rate
                 'meta_data' => array(
                     'delivery_type' => 'home_delivery',
                     'home_delivery_price' => $delivery_cost
+                ),
+            );
+            $this->add_rate($rate);
+        }
+
+        // Add small item delivery rate if available
+        $has_express_delivery = $this->package_has_express_delivery($package);
+        $express_delivery_price = $this->get_package_express_delivery_price($package);
+        
+        if ($has_express_delivery && $express_delivery_price > 0) {
+            // WooCommerce expects numeric cost, not formatted string
+            $delivery_cost = (float)$express_delivery_price;
+            
+            $rate = array(
+                'id' => $this->get_rate_id() . ':express_delivery',
+                'label' => __('Small Item Delivery', 'garden-sheds-delivery'),
+                'cost' => $delivery_cost, // Pass as numeric value
+                'calc_tax' => 'per_order', // Enable tax calculation for this rate
+                'meta_data' => array(
+                    'delivery_type' => 'express_delivery',
+                    'express_delivery_price' => $delivery_cost
                 ),
             );
             $this->add_rate($rate);
@@ -150,6 +172,11 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
             
             // Also check if product has home delivery available through category settings
             if (GSD_Product_Settings::is_home_delivery_available($product_id)) {
+                return true;
+            }
+            
+            // Also check if product has small item delivery available
+            if (GSD_Product_Settings::is_express_delivery_available($product_id)) {
                 return true;
             }
         }
@@ -196,11 +223,54 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
      * @return float
      */
     private function get_package_home_delivery_price($package) {
+        return $this->get_max_delivery_price($package, 'home');
+    }
+
+    /**
+     * Check if package has express/small item delivery option
+     *
+     * @param array $package Package information
+     * @return bool
+     */
+    private function package_has_express_delivery($package) {
+        foreach ($package['contents'] as $item) {
+            $product_id = $item['product_id'];
+            if (GSD_Product_Settings::is_express_delivery_available($product_id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get express/small item delivery price for package
+     *
+     * @param array $package Package information
+     * @return float
+     */
+    private function get_package_express_delivery_price($package) {
+        return $this->get_max_delivery_price($package, 'express');
+    }
+
+    /**
+     * Get maximum delivery price for package by type
+     *
+     * @param array $package Package information
+     * @param string $type Delivery type: 'home' or 'express'
+     * @return float
+     */
+    private function get_max_delivery_price($package, $type) {
         $max_price = 0;
         foreach ($package['contents'] as $item) {
             $product_id = $item['product_id'];
-            if (GSD_Product_Settings::is_home_delivery_available($product_id)) {
+            
+            if ($type === 'home' && GSD_Product_Settings::is_home_delivery_available($product_id)) {
                 $price = GSD_Product_Settings::get_home_delivery_price($product_id);
+                if ($price > $max_price) {
+                    $max_price = $price;
+                }
+            } elseif ($type === 'express' && GSD_Product_Settings::is_express_delivery_available($product_id)) {
+                $price = GSD_Product_Settings::get_express_delivery_price($product_id);
                 if ($price > $max_price) {
                     $max_price = $price;
                 }

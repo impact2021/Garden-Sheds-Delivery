@@ -49,8 +49,9 @@ class GSD_Order {
         $courier = $order->get_meta('_gsd_courier');
         $depot_name = $order->get_meta('_gsd_depot_name');
         $home_delivery = $order->get_meta('_gsd_home_delivery');
+        $express_delivery = $order->get_meta('_gsd_express_delivery');
 
-        if (empty($courier) && empty($depot_name)) {
+        if (empty($courier) && empty($depot_name) && $home_delivery !== 'yes' && $express_delivery !== 'yes') {
             return;
         }
 
@@ -72,6 +73,16 @@ class GSD_Order {
             echo '<td>' . esc_html__('Home Delivery', 'garden-sheds-delivery');
             if ($home_delivery_price) {
                 echo ' (' . wc_price($home_delivery_price) . ')';
+            }
+            echo '</td>';
+            echo '</tr>';
+        } elseif ($express_delivery === 'yes') {
+            $express_delivery_price = $order->get_meta('_gsd_express_delivery_price');
+            echo '<tr>';
+            echo '<th>' . esc_html__('Delivery Method:', 'garden-sheds-delivery') . '</th>';
+            echo '<td>' . esc_html__('Small Item Delivery', 'garden-sheds-delivery');
+            if ($express_delivery_price) {
+                echo ' (' . wc_price($express_delivery_price) . ')';
             }
             echo '</td>';
             echo '</tr>';
@@ -113,8 +124,9 @@ class GSD_Order {
         $courier = $order->get_meta('_gsd_courier');
         $depot_name = $order->get_meta('_gsd_depot_name');
         $home_delivery = $order->get_meta('_gsd_home_delivery');
+        $express_delivery = $order->get_meta('_gsd_express_delivery');
 
-        if (empty($courier) && empty($depot_name)) {
+        if (empty($courier) && empty($depot_name) && $home_delivery !== 'yes' && $express_delivery !== 'yes') {
             return;
         }
 
@@ -129,6 +141,13 @@ class GSD_Order {
             echo __('Delivery Method:', 'garden-sheds-delivery') . ' ' . __('Home Delivery', 'garden-sheds-delivery');
             if ($home_delivery_price) {
                 echo ' (' . wc_price($home_delivery_price) . ')';
+            }
+            echo "\n";
+        } elseif ($express_delivery === 'yes') {
+            $express_delivery_price = $order->get_meta('_gsd_express_delivery_price');
+            echo __('Delivery Method:', 'garden-sheds-delivery') . ' ' . __('Small Item Delivery', 'garden-sheds-delivery');
+            if ($express_delivery_price) {
+                echo ' (' . wc_price($express_delivery_price) . ')';
             }
             echo "\n";
         } elseif ($depot_name) {
@@ -149,8 +168,9 @@ class GSD_Order {
         $courier = $order->get_meta('_gsd_courier');
         $depot_name = $order->get_meta('_gsd_depot_name');
         $home_delivery = $order->get_meta('_gsd_home_delivery');
+        $express_delivery = $order->get_meta('_gsd_express_delivery');
 
-        if (empty($courier) && empty($depot_name)) {
+        if (empty($courier) && empty($depot_name) && $home_delivery !== 'yes' && $express_delivery !== 'yes') {
             return;
         }
 
@@ -167,6 +187,13 @@ class GSD_Order {
             echo '<p><strong>' . esc_html__('Delivery Method:', 'garden-sheds-delivery') . '</strong> ' . esc_html__('Home Delivery', 'garden-sheds-delivery');
             if ($home_delivery_price) {
                 echo ' (' . wc_price($home_delivery_price) . ')';
+            }
+            echo '</p>';
+        } elseif ($express_delivery === 'yes') {
+            $express_delivery_price = $order->get_meta('_gsd_express_delivery_price');
+            echo '<p><strong>' . esc_html__('Delivery Method:', 'garden-sheds-delivery') . '</strong> ' . esc_html__('Small Item Delivery', 'garden-sheds-delivery');
+            if ($express_delivery_price) {
+                echo ' (' . wc_price($express_delivery_price) . ')';
             }
             echo '</p>';
         } elseif ($depot_name) {
