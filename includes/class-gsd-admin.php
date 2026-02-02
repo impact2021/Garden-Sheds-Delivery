@@ -225,9 +225,106 @@ class GSD_Admin {
         }
 
         $couriers = GSD_Courier::get_couriers();
+        $default_home_delivery_cost = get_option('gsd_default_home_delivery_cost', '150');
+        $default_express_delivery_cost = get_option('gsd_default_express_delivery_cost', '15');
         ?>
         <div class="wrap">
             <h1><?php echo esc_html__('Courier Depot Locations', 'garden-sheds-delivery'); ?></h1>
+            
+            <!-- Home Delivery Fee Documentation -->
+            <div class="notice notice-info" style="border-left-color: #2271b1; margin-top: 20px;">
+                <h2 style="margin-top: 10px;"><?php echo esc_html__('📦 How Home Delivery Fees Work', 'garden-sheds-delivery'); ?></h2>
+                <p><?php echo esc_html__('Understanding how shipping fees are calculated when customers select home delivery:', 'garden-sheds-delivery'); ?></p>
+                
+                <ol style="margin-left: 20px; line-height: 1.8;">
+                    <li>
+                        <strong><?php echo esc_html__('Default Delivery Fee:', 'garden-sheds-delivery'); ?></strong>
+                        <?php 
+                        echo sprintf(
+                            esc_html__('The global default home delivery cost is set to %s. This applies to all products unless overridden.', 'garden-sheds-delivery'),
+                            '<strong>' . wc_price($default_home_delivery_cost) . '</strong>'
+                        ); 
+                        ?>
+                        <br>
+                        <em><?php echo sprintf(
+                            esc_html__('→ You can change this in %sShed Delivery > Settings%s', 'garden-sheds-delivery'),
+                            '<a href="' . esc_url(admin_url('admin.php?page=garden-sheds-delivery')) . '">',
+                            '</a>'
+                        ); ?></em>
+                    </li>
+                    
+                    <li>
+                        <strong><?php echo esc_html__('Product-Specific Pricing:', 'garden-sheds-delivery'); ?></strong>
+                        <?php echo esc_html__('Each product can override the default cost with a custom home delivery price.', 'garden-sheds-delivery'); ?>
+                        <br>
+                        <em><?php echo esc_html__('→ Set this in the product "Delivery Options" tab when editing a product', 'garden-sheds-delivery'); ?></em>
+                    </li>
+                    
+                    <li>
+                        <strong><?php echo esc_html__('Category-Based Home Delivery:', 'garden-sheds-delivery'); ?></strong>
+                        <?php echo esc_html__('Products in categories marked for "Home Delivery" automatically offer this option at checkout.', 'garden-sheds-delivery'); ?>
+                        <br>
+                        <em><?php echo sprintf(
+                            esc_html__('→ Configure this in %sShed Delivery > Settings%s under "Delivery Options by Category"', 'garden-sheds-delivery'),
+                            '<a href="' . esc_url(admin_url('admin.php?page=garden-sheds-delivery')) . '">',
+                            '</a>'
+                        ); ?></em>
+                    </li>
+                    
+                    <li>
+                        <strong><?php echo esc_html__('Checkout Process:', 'garden-sheds-delivery'); ?></strong>
+                        <?php echo esc_html__('When a customer checks the "Home Delivery" box at checkout, the shipping fee is automatically added to their order total.', 'garden-sheds-delivery'); ?>
+                    </li>
+                    
+                    <li>
+                        <strong><?php echo esc_html__('Depot Pickup (Free):', 'garden-sheds-delivery'); ?></strong>
+                        <?php echo esc_html__('If customers choose to pick up from a depot instead, no shipping fee is charged.', 'garden-sheds-delivery'); ?>
+                    </li>
+                </ol>
+                
+                <h3 style="margin-top: 15px;"><?php echo esc_html__('💡 Example:', 'garden-sheds-delivery'); ?></h3>
+                <div style="background: #f0f6fc; padding: 15px; border-radius: 4px; margin: 10px 0;">
+                    <p style="margin: 0;">
+                        <strong><?php echo esc_html__('Product:', 'garden-sheds-delivery'); ?></strong> <?php echo esc_html__('Garden Shed Premium', 'garden-sheds-delivery'); ?><br>
+                        <strong><?php echo esc_html__('Category:', 'garden-sheds-delivery'); ?></strong> <?php echo esc_html__('Garden Sheds (Home Delivery enabled)', 'garden-sheds-delivery'); ?><br>
+                        <strong><?php echo esc_html__('Custom Price:', 'garden-sheds-delivery'); ?></strong> <?php echo esc_html__('Not set', 'garden-sheds-delivery'); ?><br>
+                        <strong><?php echo esc_html__('Result:', 'garden-sheds-delivery'); ?></strong> 
+                        <?php echo sprintf(
+                            esc_html__('Customer sees "Home Delivery (+%s)" option at checkout', 'garden-sheds-delivery'),
+                            wc_price($default_home_delivery_cost)
+                        ); ?>
+                    </p>
+                </div>
+                
+                <div style="background: #f0f6fc; padding: 15px; border-radius: 4px; margin: 10px 0;">
+                    <p style="margin: 0;">
+                        <strong><?php echo esc_html__('Product:', 'garden-sheds-delivery'); ?></strong> <?php echo esc_html__('Custom Garden Shed', 'garden-sheds-delivery'); ?><br>
+                        <strong><?php echo esc_html__('Category:', 'garden-sheds-delivery'); ?></strong> <?php echo esc_html__('Garden Sheds (Home Delivery enabled)', 'garden-sheds-delivery'); ?><br>
+                        <strong><?php echo esc_html__('Custom Price:', 'garden-sheds-delivery'); ?></strong> <?php echo wc_price(250); ?><br>
+                        <strong><?php echo esc_html__('Result:', 'garden-sheds-delivery'); ?></strong> 
+                        <?php echo sprintf(
+                            esc_html__('Customer sees "Home Delivery (+%s)" option at checkout (uses custom price)', 'garden-sheds-delivery'),
+                            wc_price(250)
+                        ); ?>
+                    </p>
+                </div>
+                
+                <h3 style="margin-top: 15px;"><?php echo esc_html__('🔧 Troubleshooting:', 'garden-sheds-delivery'); ?></h3>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>
+                        <strong><?php echo esc_html__('Fee not showing?', 'garden-sheds-delivery'); ?></strong>
+                        <?php echo esc_html__('Make sure the product\'s category is marked for "Home Delivery" in Shed Delivery > Settings', 'garden-sheds-delivery'); ?>
+                    </li>
+                    <li>
+                        <strong><?php echo esc_html__('Wrong price?', 'garden-sheds-delivery'); ?></strong>
+                        <?php echo esc_html__('Check if the product has a custom price set in the "Delivery Options" tab', 'garden-sheds-delivery'); ?>
+                    </li>
+                    <li>
+                        <strong><?php echo esc_html__('Fee not being added at checkout?', 'garden-sheds-delivery'); ?></strong>
+                        <?php echo esc_html__('The fee is automatically calculated when the "Home Delivery" checkbox is selected. Make sure WooCommerce sessions are working properly.', 'garden-sheds-delivery'); ?>
+                    </li>
+                </ul>
+            </div>
             
             <form method="post" action="">
                 <?php wp_nonce_field('gsd_save_depots'); ?>
