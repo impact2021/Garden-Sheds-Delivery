@@ -2,6 +2,19 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.3.1] - 2026-02-02
+
+### Changed
+- **Delivery Cost Display**: Home delivery and small item delivery costs now appear as separate line items in the order summary table
+  - Delivery fees are now displayed as separate fees rather than being bundled into the shipping rate
+  - This provides clearer cost breakdown for customers during checkout
+  - The shipping method label no longer includes the delivery price (shown separately as a fee)
+  
+### Technical
+- Modified: `includes/class-gsd-shipping-method.php` - Set shipping rate cost to 0 for delivery options
+- Modified: `includes/class-gsd-checkout.php` - Added `add_delivery_fee()` method to add fees via WooCommerce cart fee system
+- Modified: `garden-sheds-delivery.php` - Updated version to 1.3.1
+
 ## [1.3.0] - 2026-02-02
 
 ### Fixed
