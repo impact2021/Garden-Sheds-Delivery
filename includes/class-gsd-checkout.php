@@ -116,9 +116,34 @@ class GSD_Checkout {
     }
 
     /**
+     * Check if any product in cart has express delivery available
+     */
+    private function cart_has_express_delivery_option() {
+        if (!WC()->cart) {
+            return false;
+        }
+
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            $product_id = $cart_item['product_id'];
+            if (GSD_Product_Settings::is_express_delivery_available($product_id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Check if any product in cart has "contact for delivery" option
      */
     private function cart_has_contact_for_delivery() {
+        // Check global setting first
+        $global_setting = get_option('gsd_show_contact_for_delivery', false);
+        if ($global_setting) {
+            // If global setting is enabled, show for any product with delivery selection
+            return $this->cart_needs_delivery_selection();
+        }
+
+        // Otherwise check product-level setting
         if (!WC()->cart) {
             return false;
         }
@@ -154,6 +179,27 @@ class GSD_Checkout {
     }
 
     /**
+     * Get express delivery price for cart
+     */
+    private function get_cart_express_delivery_price() {
+        if (!WC()->cart) {
+            return 0;
+        }
+
+        $max_price = 0;
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            $product_id = $cart_item['product_id'];
+            if (GSD_Product_Settings::is_express_delivery_available($product_id)) {
+                $price = GSD_Product_Settings::get_express_delivery_price($product_id);
+                if ($price > $max_price) {
+                    $max_price = $price;
+                }
+            }
+        }
+        return $max_price;
+    }
+
+    /**
      * Add delivery fields to cart page
      */
     public function add_cart_delivery_fields() {
@@ -168,17 +214,22 @@ class GSD_Checkout {
         $courier_slug = $this->get_cart_courier();
         if ($courier_slug) {
             $courier = GSD_Courier::get_courier($courier_slug);
-            $depots = GSD_Courier::get_depots($courier_slug);
+            // Only show depot selection if courier is enabled
+            $is_enabled = isset($courier['enabled']) ? $courier['enabled'] : true;
             
-            if (!empty($depots)) {
-                echo '<p><strong>' . esc_html__('Select Depot Location:', 'garden-sheds-delivery') . '</strong></p>';
-                echo '<select name="gsd_depot" id="gsd_depot" class="input-text" style="width: 100%; max-width: 400px; padding: 8px;">';
-                echo '<option value="">' . esc_html__('-- Select Depot --', 'garden-sheds-delivery') . '</option>';
-                foreach ($depots as $depot) {
-                    $selected = (isset($_POST['gsd_depot']) && $_POST['gsd_depot'] === $depot['id']) ? 'selected' : '';
-                    echo '<option value="' . esc_attr($depot['id']) . '" ' . $selected . '>' . esc_html($depot['name']) . '</option>';
+            if ($is_enabled) {
+                $depots = GSD_Courier::get_depots($courier_slug);
+                
+                if (!empty($depots)) {
+                    echo '<p><strong>' . esc_html__('Select Depot Location:', 'garden-sheds-delivery') . '</strong></p>';
+                    echo '<select name="gsd_depot" id="gsd_depot" class="input-text" style="width: 100%; max-width: 400px; padding: 8px;">';
+                    echo '<option value="">' . esc_html__('-- Select Depot --', 'garden-sheds-delivery') . '</option>';
+                    foreach ($depots as $depot) {
+                        $selected = (isset($_POST['gsd_depot']) && $_POST['gsd_depot'] === $depot['id']) ? 'selected' : '';
+                        echo '<option value="' . esc_attr($depot['id']) . '" ' . $selected . '>' . esc_html($depot['name']) . '</option>';
+                    }
+                    echo '</select>';
                 }
-                echo '</select>';
             }
         }
 
@@ -187,11 +238,26 @@ class GSD_Checkout {
             $home_delivery_price = $this->get_cart_home_delivery_price();
             echo '<p style="margin-top: 15px;">';
             echo '<label>';
-            $checked = (isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === 'yes') ? 'checked' : '';
-            echo '<input type="checkbox" name="gsd_home_delivery" id="gsd_home_delivery" value="yes" ' . $checked . ' /> ';
+            $checked = (isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === '1') ? 'checked' : '';
+            echo '<input type="checkbox" name="gsd_home_delivery" id="gsd_home_delivery" value="1" ' . $checked . ' /> ';
             echo sprintf(
                 esc_html__('Home Delivery (+%s)', 'garden-sheds-delivery'),
                 wc_price($home_delivery_price)
+            );
+            echo '</label>';
+            echo '</p>';
+        }
+
+        // Express delivery option
+        if ($this->cart_has_express_delivery_option()) {
+            $express_delivery_price = $this->get_cart_express_delivery_price();
+            echo '<p style="margin-top: 15px;">';
+            echo '<label>';
+            $checked = (isset($_POST['gsd_express_delivery']) && $_POST['gsd_express_delivery'] === '1') ? 'checked' : '';
+            echo '<input type="checkbox" name="gsd_express_delivery" id="gsd_express_delivery" value="1" ' . $checked . ' /> ';
+            echo sprintf(
+                esc_html__('Express Delivery (+%s)', 'garden-sheds-delivery'),
+                wc_price($express_delivery_price)
             );
             echo '</label>';
             echo '</p>';
@@ -202,7 +268,7 @@ class GSD_Checkout {
             echo '<div class="gsd-contact-delivery-notice" style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 3px;">';
             echo '<p style="margin: 0; color: #333;">';
             echo '<strong>' . esc_html__('Note:', 'garden-sheds-delivery') . '</strong> ';
-            echo esc_html__('Home delivery may be an option - please contact us after completing your order.', 'garden-sheds-delivery');
+            echo esc_html__('Home delivery may be possible. Contact us to see if we can arrange for home delivery.', 'garden-sheds-delivery');
             echo '</p>';
             echo '</div>';
         }
@@ -224,21 +290,26 @@ class GSD_Checkout {
         $courier_slug = $this->get_cart_courier();
         if ($courier_slug) {
             $courier = GSD_Courier::get_courier($courier_slug);
-            $depots = GSD_Courier::get_depots($courier_slug);
+            // Only show depot selection if courier is enabled
+            $is_enabled = isset($courier['enabled']) ? $courier['enabled'] : true;
             
-            if (!empty($depots)) {
-                $depot_options = array('' => __('-- Select Depot --', 'garden-sheds-delivery'));
-                foreach ($depots as $depot) {
-                    $depot_options[$depot['id']] = $depot['name'];
-                }
+            if ($is_enabled) {
+                $depots = GSD_Courier::get_depots($courier_slug);
+                
+                if (!empty($depots)) {
+                    $depot_options = array('' => __('-- Select Depot --', 'garden-sheds-delivery'));
+                    foreach ($depots as $depot) {
+                        $depot_options[$depot['id']] = $depot['name'];
+                    }
 
-                woocommerce_form_field('gsd_depot', array(
-                    'type' => 'select',
-                    'class' => array('form-row-wide'),
-                    'label' => sprintf(__('%s Depot Location', 'garden-sheds-delivery'), $courier['name']),
-                    'required' => !$this->cart_has_home_delivery_option(),
-                    'options' => $depot_options,
-                ), $checkout->get_value('gsd_depot'));
+                    woocommerce_form_field('gsd_depot', array(
+                        'type' => 'select',
+                        'class' => array('form-row-wide'),
+                        'label' => sprintf(__('%s Depot Location', 'garden-sheds-delivery'), $courier['name']),
+                        'required' => !$this->cart_has_home_delivery_option(),
+                        'options' => $depot_options,
+                    ), $checkout->get_value('gsd_depot'));
+                }
             }
         }
 
@@ -254,12 +325,24 @@ class GSD_Checkout {
             ), $checkout->get_value('gsd_home_delivery'));
         }
 
+        // Express delivery option
+        if ($this->cart_has_express_delivery_option()) {
+            $express_delivery_price = $this->get_cart_express_delivery_price();
+            
+            woocommerce_form_field('gsd_express_delivery', array(
+                'type' => 'checkbox',
+                'class' => array('form-row-wide'),
+                'label' => sprintf(__('Express Delivery (+%s)', 'garden-sheds-delivery'), wc_price($express_delivery_price)),
+                'required' => false,
+            ), $checkout->get_value('gsd_express_delivery'));
+        }
+
         // Contact for delivery notice
         if ($this->cart_has_contact_for_delivery()) {
             echo '<div class="gsd-contact-delivery-notice" style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 3px;">';
             echo '<p style="margin: 0; color: #333;">';
             echo '<strong>' . esc_html__('Note:', 'garden-sheds-delivery') . '</strong> ';
-            echo esc_html__('Home delivery may be an option - please contact us after completing your order.', 'garden-sheds-delivery');
+            echo esc_html__('Home delivery may be possible. Contact us to see if we can arrange for home delivery.', 'garden-sheds-delivery');
             echo '</p>';
             echo '</div>';
         }
@@ -326,6 +409,14 @@ class GSD_Checkout {
             $order->update_meta_data('_gsd_home_delivery_price', $price);
         }
 
+        $express_delivery = isset($_POST['gsd_express_delivery']) && $_POST['gsd_express_delivery'] === '1';
+        $order->update_meta_data('_gsd_express_delivery', $express_delivery ? 'yes' : 'no');
+        
+        if ($express_delivery) {
+            $price = $this->get_cart_express_delivery_price();
+            $order->update_meta_data('_gsd_express_delivery_price', $price);
+        }
+
         // Save "contact for delivery" flag if applicable
         if ($this->cart_has_contact_for_delivery()) {
             $order->update_meta_data('_gsd_contact_for_delivery', 'yes');
@@ -340,15 +431,22 @@ class GSD_Checkout {
             return;
         }
 
-        if (!$this->cart_has_home_delivery_option()) {
+        if (!$this->cart_has_home_delivery_option() && !$this->cart_has_express_delivery_option()) {
             return;
         }
 
-        $home_delivery = isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === 'yes';
+        $home_delivery = isset($_POST['gsd_home_delivery']) && $_POST['gsd_home_delivery'] === '1';
         
         if ($home_delivery) {
             $price = $this->get_cart_home_delivery_price();
             $cart->add_fee(__('Home Delivery', 'garden-sheds-delivery'), $price);
+        }
+
+        $express_delivery = isset($_POST['gsd_express_delivery']) && $_POST['gsd_express_delivery'] === '1';
+        
+        if ($express_delivery) {
+            $price = $this->get_cart_express_delivery_price();
+            $cart->add_fee(__('Express Delivery', 'garden-sheds-delivery'), $price);
         }
     }
 }
