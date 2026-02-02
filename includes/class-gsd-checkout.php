@@ -440,8 +440,19 @@ class GSD_Checkout {
         if (isset($_POST['post_data'])) {
             parse_str($_POST['post_data'], $post_data);
             $home_delivery = isset($post_data['gsd_home_delivery']) && $post_data['gsd_home_delivery'] === '1';
+            // Store in session for subsequent calls
+            if (WC()->session) {
+                WC()->session->set('gsd_home_delivery', $home_delivery ? '1' : '0');
+            }
         } elseif (isset($_POST['gsd_home_delivery'])) {
             $home_delivery = $_POST['gsd_home_delivery'] === '1';
+            // Store in session for subsequent calls
+            if (WC()->session) {
+                WC()->session->set('gsd_home_delivery', $home_delivery ? '1' : '0');
+            }
+        } elseif (WC()->session && WC()->session->get('gsd_home_delivery')) {
+            // Fall back to session data
+            $home_delivery = WC()->session->get('gsd_home_delivery') === '1';
         }
         
         if ($home_delivery) {
@@ -454,8 +465,19 @@ class GSD_Checkout {
         if (isset($_POST['post_data'])) {
             parse_str($_POST['post_data'], $post_data);
             $express_delivery = isset($post_data['gsd_express_delivery']) && $post_data['gsd_express_delivery'] === '1';
+            // Store in session for subsequent calls
+            if (WC()->session) {
+                WC()->session->set('gsd_express_delivery', $express_delivery ? '1' : '0');
+            }
         } elseif (isset($_POST['gsd_express_delivery'])) {
             $express_delivery = $_POST['gsd_express_delivery'] === '1';
+            // Store in session for subsequent calls
+            if (WC()->session) {
+                WC()->session->set('gsd_express_delivery', $express_delivery ? '1' : '0');
+            }
+        } elseif (WC()->session && WC()->session->get('gsd_express_delivery')) {
+            // Fall back to session data
+            $express_delivery = WC()->session->get('gsd_express_delivery') === '1';
         }
         
         if ($express_delivery) {
