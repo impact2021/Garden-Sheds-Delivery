@@ -123,8 +123,9 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
             
             $rate = array(
                 'id' => $this->get_rate_id() . ':home_delivery',
-                'label' => sprintf(__('Home Delivery (+%s)', 'garden-sheds-delivery'), wc_price($delivery_cost)),
+                'label' => __('Home Delivery', 'garden-sheds-delivery'),
                 'cost' => $delivery_cost, // Pass as numeric value
+                'calc_tax' => 'per_order', // Enable tax calculation for this rate
                 'meta_data' => array(
                     'delivery_type' => 'home_delivery',
                     'home_delivery_price' => $delivery_cost

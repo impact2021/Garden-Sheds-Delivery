@@ -93,6 +93,29 @@
     margin-top: 15px;
 }
 
+/* Shipping cost breakdown styling */
+.gsd-cost-breakdown {
+    font-weight: 600;
+    color: #333;
+}
+
+.gsd-cost-breakdown small {
+    font-weight: 400;
+    color: #666;
+    font-size: 0.85em;
+}
+
+/* Make shipping method labels more prominent in cart/checkout */
+.woocommerce-shipping-methods li label,
+.woocommerce-cart-form__contents .shipping label {
+    font-size: 14px;
+}
+
+.woocommerce-shipping-methods li label .gsd-cost-breakdown {
+    display: inline-block;
+    margin-left: 4px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .gsd-delivery-selection select {

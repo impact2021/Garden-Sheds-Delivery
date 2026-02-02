@@ -35,6 +35,9 @@ class GSD_Checkout {
         
         // Enqueue scripts and styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        
+        // Add custom display for shipping in cart and checkout totals
+        add_filter('woocommerce_cart_shipping_method_full_label', array($this, 'customize_shipping_label'), 10, 2);
     }
 
     /**
@@ -96,5 +99,55 @@ class GSD_Checkout {
                 }
             }
         }
+    }
+
+    /**
+     * Customize shipping method label in cart and checkout
+     * 
+     * Shows cost breakdown including GST for home delivery
+     *
+     * @param string $label The shipping method label
+     * @param object $method The shipping method object
+     * @return string Modified label
+     */
+    public function customize_shipping_label($label, $method) {
+        // Only customize our shipping method
+        if ($method->get_method_id() !== 'garden_sheds_delivery') {
+            return $label;
+        }
+
+        $method_id = $method->get_id();
+        
+        // Check if this is home delivery
+        if (strpos($method_id, ':home_delivery') !== false) {
+            $cost = $method->get_cost();
+            
+            if ($cost > 0) {
+                // Get tax if applicable
+                $taxes = $method->get_taxes();
+                $tax_amount = 0;
+                if (!empty($taxes) && is_array($taxes)) {
+                    $tax_amount = array_sum($taxes);
+                }
+                
+                // Build label with cost breakdown
+                $label = __('Home Delivery', 'garden-sheds-delivery');
+                
+                if ($tax_amount > 0) {
+                    $total_with_tax = $cost + $tax_amount;
+                    $label .= sprintf(
+                        ' <span class="gsd-cost-breakdown">(%s <small>inc. GST</small>)</span>',
+                        wc_price($total_with_tax)
+                    );
+                } else {
+                    $label .= sprintf(' (%s)', wc_price($cost));
+                }
+            }
+        } else if (strpos($method_id, ':depot:') !== false) {
+            // For depot pickup, just show the depot name
+            $label = $method->get_label();
+        }
+        
+        return $label;
     }
 }
