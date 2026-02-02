@@ -1,0 +1,31 @@
+# WordPress
+.htaccess
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
+
+# Node modules (if any)
+node_modules/
+
+# Composer
+/vendor/
+composer.lock
+
+# Build files
+/build/
+/dist/
