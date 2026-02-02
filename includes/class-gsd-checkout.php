@@ -450,8 +450,8 @@ class GSD_Checkout {
             if (WC()->session) {
                 WC()->session->set('gsd_home_delivery', $home_delivery ? '1' : '0');
             }
-        } elseif (WC()->session && WC()->session->get('gsd_home_delivery')) {
-            // Fall back to session data
+        } elseif (WC()->session && WC()->session->get('gsd_home_delivery') !== null) {
+            // Fall back to session data only if it has been set
             $home_delivery = WC()->session->get('gsd_home_delivery') === '1';
         }
         
@@ -475,8 +475,8 @@ class GSD_Checkout {
             if (WC()->session) {
                 WC()->session->set('gsd_express_delivery', $express_delivery ? '1' : '0');
             }
-        } elseif (WC()->session && WC()->session->get('gsd_express_delivery')) {
-            // Fall back to session data
+        } elseif (WC()->session && WC()->session->get('gsd_express_delivery') !== null) {
+            // Fall back to session data only if it has been set
             $express_delivery = WC()->session->get('gsd_express_delivery') === '1';
         }
         
