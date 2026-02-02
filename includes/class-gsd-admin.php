@@ -87,6 +87,13 @@ class GSD_Admin {
         $selected_contact_delivery = get_option('gsd_contact_delivery_categories', array());
         $selected_main_freight = get_option('gsd_main_freight_categories', array());
         $selected_pbt = get_option('gsd_pbt_categories', array());
+        
+        // Ensure all selected values are arrays
+        $selected_home_delivery = is_array($selected_home_delivery) ? $selected_home_delivery : array();
+        $selected_contact_delivery = is_array($selected_contact_delivery) ? $selected_contact_delivery : array();
+        $selected_main_freight = is_array($selected_main_freight) ? $selected_main_freight : array();
+        $selected_pbt = is_array($selected_pbt) ? $selected_pbt : array();
+        
         $default_cost = get_option('gsd_default_home_delivery_cost', '150');
         
         // Get all product categories
@@ -340,33 +347,31 @@ class GSD_Admin {
      */
     private function save_delivery_settings() {
         // Save home delivery categories
-        $categories = isset($_POST['gsd_home_delivery_categories']) && is_array($_POST['gsd_home_delivery_categories']) 
-            ? array_map('intval', $_POST['gsd_home_delivery_categories']) 
-            : array();
-        update_option('gsd_home_delivery_categories', $categories);
+        $this->save_category_option('gsd_home_delivery_categories');
 
         // Save contact delivery categories
-        $contact_categories = isset($_POST['gsd_contact_delivery_categories']) && is_array($_POST['gsd_contact_delivery_categories']) 
-            ? array_map('intval', $_POST['gsd_contact_delivery_categories']) 
-            : array();
-        update_option('gsd_contact_delivery_categories', $contact_categories);
+        $this->save_category_option('gsd_contact_delivery_categories');
 
         // Save main freight categories
-        $main_freight_categories = isset($_POST['gsd_main_freight_categories']) && is_array($_POST['gsd_main_freight_categories']) 
-            ? array_map('intval', $_POST['gsd_main_freight_categories']) 
-            : array();
-        update_option('gsd_main_freight_categories', $main_freight_categories);
+        $this->save_category_option('gsd_main_freight_categories');
 
         // Save PBT categories
-        $pbt_categories = isset($_POST['gsd_pbt_categories']) && is_array($_POST['gsd_pbt_categories']) 
-            ? array_map('intval', $_POST['gsd_pbt_categories']) 
-            : array();
-        update_option('gsd_pbt_categories', $pbt_categories);
+        $this->save_category_option('gsd_pbt_categories');
 
         // Save default home delivery cost
         $cost = isset($_POST['gsd_default_home_delivery_cost']) 
             ? sanitize_text_field($_POST['gsd_default_home_delivery_cost']) 
             : '150';
         update_option('gsd_default_home_delivery_cost', $cost);
+    }
+
+    /**
+     * Helper method to save category array options
+     */
+    private function save_category_option($option_name) {
+        $categories = isset($_POST[$option_name]) && is_array($_POST[$option_name]) 
+            ? array_map('intval', $_POST[$option_name]) 
+            : array();
+        update_option($option_name, $categories);
     }
 }
