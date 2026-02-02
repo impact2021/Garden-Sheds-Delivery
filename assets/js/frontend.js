@@ -12,10 +12,4 @@ jQuery(document).ready(function($) {
         // Trigger checkout update to recalculate totals
         $(document.body).trigger('update_checkout');
     });
-    
-    // Additional fallback for radio button changes
-    $(document).on('change', 'input[type="radio"][name^="shipping_method"]', function() {
-        // Force WooCommerce to update the order total
-        $(document.body).trigger('update_checkout');
-    });
 });
