@@ -5,11 +5,11 @@ All notable changes to the Garden Sheds Delivery plugin will be documented in th
 ## [1.3.3] - 2026-02-02
 
 ### Fixed
-- **Small Item Delivery Fee**: Fixed issue where small item delivery fee was not being added to checkout totals
-  - Added explicit product eligibility validation before adding delivery fees
+- **Small Item Delivery Fee Validation**: Fixed issue where small item delivery fee could be added without properly validating product eligibility
+  - Added explicit product eligibility validation before adding delivery fees to checkout
   - Both home delivery and small item delivery now validate that products in the cart actually support the delivery type before adding the fee
-  - This prevents delivery options from appearing incorrectly when products don't qualify
-  - Ensures delivery fees are only applied when products meet category-based eligibility requirements
+  - This prevents delivery fees from being applied when products don't meet category-based eligibility requirements
+  - Ensures delivery options and fees are only offered when products qualify
 
 ### Technical
 - Modified: `includes/class-gsd-checkout.php` - Added `package_has_home_delivery()` and `package_has_express_delivery()` validation methods
