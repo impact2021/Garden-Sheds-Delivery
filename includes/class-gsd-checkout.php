@@ -285,7 +285,7 @@ class GSD_Checkout {
             if (!$home_delivery && empty($_POST['gsd_depot'])) {
                 wc_add_notice(__('Please select a depot location or choose home delivery.', 'garden-sheds-delivery'), 'error');
             }
-        } else if ($has_home_delivery_option) {
+        } elseif ($has_home_delivery_option) {
             // No courier assigned but home delivery is available
             // Home delivery MUST be selected
             if (!$home_delivery) {
