@@ -49,6 +49,11 @@ class GSD_Checkout {
 
     /**
      * Save shipping method data to order
+     * 
+     * Extracts delivery information from the selected shipping method rate
+     * and saves it as order meta data. Handles both depot pickup and home delivery.
+     *
+     * @param WC_Order $order The order object being created
      */
     public function save_shipping_method_data($order) {
         // Get the chosen shipping methods
