@@ -104,21 +104,21 @@ class GSD_Product_Settings {
                     'description' => __('Display message that home delivery may be available - customer should contact after ordering.', 'garden-sheds-delivery'),
                 ));
 
-                // Express delivery option
+                // Small item delivery option
                 woocommerce_wp_checkbox(array(
                     'id' => '_gsd_express_delivery_available',
-                    'label' => __('Express Delivery Available', 'garden-sheds-delivery'),
+                    'label' => __('Small Item Delivery Available', 'garden-sheds-delivery'),
                     'desc_tip' => true,
-                    'description' => __('Enable express delivery option for this product.', 'garden-sheds-delivery'),
+                    'description' => __('Enable small item delivery option for this product.', 'garden-sheds-delivery'),
                 ));
 
-                // Express delivery price
+                // Small item delivery price
                 $default_express_cost = get_option('gsd_default_express_delivery_cost', '15');
                 woocommerce_wp_text_input(array(
                     'id' => '_gsd_express_delivery_price',
-                    'label' => __('Express Delivery Price', 'garden-sheds-delivery') . ' (' . get_woocommerce_currency_symbol() . ')',
+                    'label' => __('Small Item Delivery Price', 'garden-sheds-delivery') . ' (' . get_woocommerce_currency_symbol() . ')',
                     'desc_tip' => true,
-                    'description' => sprintf(__('Price for express delivery option. Leave empty to use default (%s).', 'garden-sheds-delivery'), wc_price($default_express_cost)),
+                    'description' => sprintf(__('Price for small item delivery option. Leave empty to use default (%s).', 'garden-sheds-delivery'), wc_price($default_express_cost)),
                     'type' => 'number',
                     'custom_attributes' => array(
                         'step' => '0.01',
