@@ -2,6 +2,20 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.2.1] - 2026-02-02
+
+### Fixed
+- **Shipping Options Not Appearing for Category-Based Home Delivery**: Fixed issue where products in categories with home delivery enabled would show "no shipping options" at checkout if the product didn't have a courier explicitly assigned
+  - Updated `cart_needs_shed_delivery()` in shipping method to check for home delivery availability through category settings
+  - Updated `cart_needs_delivery_selection()` in checkout for consistency
+  - Improved validation logic to properly handle products with home delivery but no courier assigned
+  - Products with only home delivery (no courier) now correctly show the shipping method and require home delivery selection
+  - Products with both courier and home delivery continue to work as before (depot OR home delivery)
+
+### Technical
+- Modified: `includes/class-gsd-shipping-method.php` - Added category-based home delivery check
+- Modified: `includes/class-gsd-checkout.php` - Enhanced validation and delivery selection logic
+
 ## [1.2.0] - 2026-02-02
 
 ### Added
