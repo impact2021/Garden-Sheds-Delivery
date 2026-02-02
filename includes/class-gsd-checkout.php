@@ -171,8 +171,9 @@ class GSD_Checkout {
         if ($tax_amount > 0) {
             $total_with_tax = $cost + $tax_amount;
             $label .= sprintf(
-                ' <span class="gsd-cost-breakdown">(%s <small>inc. GST</small>)</span>',
-                wc_price($total_with_tax)
+                ' <span class="gsd-cost-breakdown">(%s <small>%s</small>)</span>',
+                wc_price($total_with_tax),
+                __('inc. GST', 'garden-sheds-delivery')
             );
         } else {
             $label .= sprintf(' (%s)', wc_price($cost));
