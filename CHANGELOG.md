@@ -2,6 +2,23 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.3.2] - 2026-02-02
+
+### Fixed
+- **Delivery Options Visibility**: Admin category settings now properly control which delivery options appear in checkout
+  - When a delivery option (Home Delivery, Small Items, or Contact for Delivery) is unchecked for a category in admin settings, it will no longer appear for products in that category, even if enabled at the product level
+  - Admin category checkboxes now act as the master control for delivery option visibility
+  - Depot pickup options always appear for products with assigned couriers (as intended)
+  - This ensures that deselecting a delivery option in settings immediately hides it from checkout
+
+### Changed
+- Modified delivery availability logic to respect admin category settings as the primary control
+- Product-level delivery settings now only apply when the product's category has that delivery option enabled in admin settings
+
+### Technical
+- Modified: `includes/class-gsd-product-settings.php` - Updated `is_home_delivery_available()`, `is_express_delivery_available()`, and `is_contact_for_delivery()` methods to check category settings first
+- Modified: `garden-sheds-delivery.php` - Updated version to 1.3.2
+
 ## [1.3.1] - 2026-02-02
 
 ### Changed
