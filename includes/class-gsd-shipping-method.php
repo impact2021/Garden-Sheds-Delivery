@@ -175,7 +175,7 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
                 return true;
             }
             
-            // Also check if product has express/small item delivery available
+            // Also check if product has small item delivery available
             if (GSD_Product_Settings::is_express_delivery_available($product_id)) {
                 return true;
             }

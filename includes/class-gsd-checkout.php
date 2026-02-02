@@ -54,7 +54,7 @@ class GSD_Checkout {
      * Save shipping method data to order
      * 
      * Extracts delivery information from the selected shipping method rate
-     * and saves it as order meta data. Handles depot pickup, home delivery, and express delivery.
+     * and saves it as order meta data. Handles depot pickup, home delivery, and small item delivery.
      *
      * @param WC_Order $order The order object being created
      */
@@ -99,7 +99,7 @@ class GSD_Checkout {
                         }
                     }
                 } elseif (strpos($rate_id, ':express_delivery') !== false) {
-                    // Express/Small item delivery
+                    // Small item delivery
                     $order->update_meta_data('_gsd_home_delivery', 'no');
                     $order->update_meta_data('_gsd_express_delivery', 'yes');
                     foreach ($meta_data as $meta) {
@@ -116,7 +116,7 @@ class GSD_Checkout {
     /**
      * Customize shipping method label in cart and checkout
      * 
-     * Shows cost breakdown including GST for home delivery
+     * Shows cost breakdown including GST for home delivery and small item delivery
      *
      * @param string $label The shipping method label
      * @param object $method The shipping method object
