@@ -98,23 +98,56 @@ Edit any product and go to the **Delivery Options** tab:
 
 ## Customer Experience
 
-### Checkout Process
+### Checkout Process (New Shipping Rates System)
 
-When a customer adds a product with delivery options to their cart:
+When a customer adds a product with delivery options to their cart and proceeds to checkout:
 
-1. **Shipping Method**: "Shed Delivery" appears as the shipping option
-2. **Depot Selection**: Dropdown to select preferred depot location (filtered by courier)
-3. **Home Delivery Option**: Checkbox to opt for home delivery (if enabled)
-4. **Contact Notice**: Message about contacting for delivery (if configured)
-5. **Pricing**: Home delivery fee automatically added to order total
-6. **Validation**: System validates depot selection or home delivery choice
+1. **Multiple Shipping Options**: Instead of a single "Shed Delivery" method, customers see individual shipping rate options:
+   - **Depot Pickup Options**: One radio button for each depot (e.g., "Pickup from Auckland Depot", "Pickup from Wellington Depot") - **Free**
+   - **Home Delivery Option**: One radio button for home delivery (e.g., "Home Delivery (+$150.00)") - **Adds fee**
+
+2. **Simple Selection**: Customer selects ONE shipping option
+   - If they choose a depot, pickup is free
+   - If they choose home delivery, the fee is automatically added to the order total
+
+3. **Transparent Pricing**: The home delivery fee is clearly shown in the option label (e.g., "+$150.00")
+
+4. **Standard WooCommerce UI**: The options appear in the standard shipping method section, not as custom fields below order notes
+
+**Example of what customers see:**
+```
+Shipping Method:
+○ Pickup from Auckland Depot (Free)
+○ Pickup from Wellington Depot (Free)  
+○ Pickup from Christchurch Depot (Free)
+● Home Delivery (+$150.00)
+
+Shipping: $150.00
+```
+
+### How This Works
+
+- Each depot becomes a separate shipping rate with $0 cost
+- Home delivery is a separate shipping rate with the configured cost
+- WooCommerce automatically adds the selected rate's cost to the order total
+- No separate dropdown or checkbox is needed
 
 ### Order Confirmation
 
-The selected delivery method and depot location are displayed:
+The selected delivery method is displayed:
 - On the order confirmation page
-- In order confirmation emails
+- In order confirmation emails  
 - In the admin order details page
+
+For depot pickup, it shows: "Pickup from [Depot Name]"  
+For home delivery, it shows: "Home Delivery ($XXX.XX)"
+
+### Important Notes
+
+See [HOW_IT_WORKS.md](HOW_IT_WORKS.md) for detailed information about:
+- How the new shipping rates system works
+- Troubleshooting common issues
+- Differences from the old dropdown/checkbox system
 
 ## Technical Details
 
