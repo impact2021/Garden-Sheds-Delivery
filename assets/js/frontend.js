@@ -1,14 +1,21 @@
 /**
  * Garden Sheds Delivery - Frontend JavaScript
  * 
- * Note: Depot selection and home delivery are now handled via WooCommerce shipping rates.
- * No custom JavaScript is required as WooCommerce automatically updates the checkout
- * when shipping method selections change.
+ * Handles shipping method selection and ensures checkout updates properly
  */
 
 jQuery(document).ready(function($) {
     'use strict';
 
-    // Placeholder for future frontend functionality if needed
-    // Currently, all delivery options are handled through WooCommerce shipping rates
+    // Ensure checkout updates when shipping method changes
+    $(document.body).on('change', 'input[name^="shipping_method"]', function() {
+        // Trigger checkout update to recalculate totals
+        $(document.body).trigger('update_checkout');
+    });
+    
+    // Additional fallback for radio button changes
+    $(document).on('change', 'input[type="radio"][name^="shipping_method"]', function() {
+        // Force WooCommerce to update the order total
+        $(document.body).trigger('update_checkout');
+    });
 });

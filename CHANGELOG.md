@@ -2,6 +2,28 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.3.0] - 2026-02-02
+
+### Fixed
+- **Home Delivery Fee Not Adding to Total**: Fixed issue where home delivery cost wasn't being properly added to order total
+  - Changed cost parameter from numeric to string format for better WooCommerce compatibility
+  - Ensured consistent cost formatting using `number_format()` for decimal precision
+  - Depot pickup cost also updated to string '0' for consistency
+- **Checkout Not Updating When Shipping Method Selected**: Added JavaScript to explicitly trigger checkout updates
+  - Added event listeners for shipping method radio button changes
+  - Forces WooCommerce to recalculate totals when customer selects different shipping option
+  - Ensures immediate visual feedback when switching between depot pickup and home delivery
+
+### Changed
+- **Version**: Bumped to 1.3.0
+- **Cost Format**: Shipping rate costs now use string format with 2 decimal places (e.g., '150.00' instead of 150)
+- **JavaScript**: Enhanced frontend.js with explicit checkout update triggers
+
+### Technical
+- Modified: `includes/class-gsd-shipping-method.php` - Updated cost formatting for depot and home delivery rates
+- Modified: `assets/js/frontend.js` - Added checkout update event handlers
+- Modified: `garden-sheds-delivery.php` - Updated version numbers
+
 ## [1.2.1] - 2026-02-02
 
 ### Fixed
