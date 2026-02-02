@@ -3,7 +3,7 @@
  * Plugin Name: Garden Sheds Delivery
  * Plugin URI: https://github.com/impact2021/Garden-Sheds-Delivery
  * Description: Manage courier delivery options for garden sheds with multiple depot locations
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Impact 2021
  * Author URI: https://github.com/impact2021
  * Text Domain: garden-sheds-delivery
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('GSD_VERSION', '1.1.0');
+define('GSD_VERSION', '1.2.0');
 define('GSD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('GSD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GSD_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -48,6 +48,7 @@ function gsd_init() {
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-checkout.php';
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-order.php';
     require_once GSD_PLUGIN_DIR . 'includes/class-gsd-admin.php';
+    require_once GSD_PLUGIN_DIR . 'includes/class-gsd-shipping-method.php';
 
     // Initialize classes
     GSD_Courier::instance();
@@ -58,8 +59,19 @@ function gsd_init() {
     if (is_admin()) {
         GSD_Admin::instance();
     }
+    
+    // Register shipping method
+    add_filter('woocommerce_shipping_methods', 'gsd_register_shipping_method');
 }
 add_action('plugins_loaded', 'gsd_init');
+
+/**
+ * Register shipping method
+ */
+function gsd_register_shipping_method($methods) {
+    $methods['garden_sheds_delivery'] = 'GSD_Shipping_Method';
+    return $methods;
+}
 
 /**
  * Display WooCommerce missing notice

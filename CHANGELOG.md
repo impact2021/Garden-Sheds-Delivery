@@ -2,6 +2,47 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.2.0] - 2026-02-02
+
+### Added
+- **WooCommerce Shipping Method Integration**: Plugin now registers as a proper WooCommerce shipping method
+  - Fixes "No shipping options were found" error
+  - Integrates with WooCommerce shipping zones
+  - Replaces standard shipping for configured products
+- **Category-Based Home Delivery**: New global setting to enable home delivery for entire product categories
+  - Select categories in Shed Delivery settings
+  - All products in selected categories automatically offer home delivery
+  - Individual products can still override settings
+- **Global Default Home Delivery Cost**: Set default cost in settings
+  - Applied to all products unless overridden
+  - Shown in product settings as reference
+  - Simplifies bulk pricing management
+- **Standalone Admin Menu**: "Shed Delivery" now appears as its own top-level menu item
+  - No longer under WooCommerce submenu
+  - Easier to find and access
+  - Custom store icon for visibility
+- **Comprehensive Documentation**: New DOCS.md file with complete documentation
+  - Installation guide
+  - Configuration instructions
+  - Troubleshooting section
+  - Developer API reference
+  - Hooks and filters documentation
+
+### Changed
+- Admin menu moved from WooCommerce submenu to standalone top-level menu
+- Settings page title changed from "Garden Sheds Delivery Settings" to "Shed Delivery Settings"
+- Product settings now show default cost in description
+- Home delivery price field can be left empty to use global default
+- Enhanced product settings with better help text
+- Updated README.md with new features and quick start guide
+
+### Technical
+- New file: `includes/class-gsd-shipping-method.php` - WooCommerce shipping method
+- New file: `DOCS.md` - Comprehensive documentation
+- Modified: `class-gsd-admin.php` - Added category and cost settings
+- Modified: `class-gsd-product-settings.php` - Category-based delivery logic
+- Modified: `garden-sheds-delivery.php` - Shipping method registration
+
 ## [1.1.0] - 2026-02-02
 
 ### Added
