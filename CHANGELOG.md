@@ -2,6 +2,21 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.1.0] - 2026-02-02
+
+### Added
+- **Contact for Delivery Option**: New product setting to display "Home delivery may be an option - please contact us after completing your order" message
+- Product-level checkbox: "Show 'Contact Us' for Home Delivery"
+- Informational notice displayed on checkout and cart pages when this option is enabled
+- Notice also shown in order confirmation, emails, and admin order details
+- Styled notice box with blue accent for visibility
+- Order meta storage for `_gsd_contact_for_delivery` flag
+
+### Changed
+- Updated product settings tab description for clarity between immediate home delivery and contact-required options
+- Enhanced CSS with styling for contact delivery notice
+- Order display now shows contact notice when applicable
+
 ## [1.0.0] - 2026-02-02
 
 ### Added

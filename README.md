@@ -8,7 +8,8 @@ A WooCommerce plugin for managing courier delivery options for garden sheds with
 - **Depot Location Selection**: Each courier can have multiple depot locations that customers can choose from
 - **Product-Level Courier Assignment**: Assign different products to different courier companies
 - **Optional Home Delivery**: Products can have an optional home delivery option with configurable pricing
-- **Flexible Delivery Options**: Customers can choose between picking up from a depot or paying for home delivery
+- **Contact for Delivery**: Display a message indicating home delivery may be available upon request
+- **Flexible Delivery Options**: Customers can choose between picking up from a depot, paying for home delivery, or contacting for more information
 
 ## Installation
 
@@ -33,9 +34,11 @@ A WooCommerce plugin for managing courier delivery options for garden sheds with
 1. Edit a product in WooCommerce
 2. Go to the **Delivery Options** tab
 3. Select the **Courier Company** that will deliver this product
-4. Check **Home Delivery Available** if customers should have the option to pay for home delivery
-5. Set the **Home Delivery Price** (defaults to $150)
-6. Save the product
+4. Configure delivery availability:
+   - Check **Home Delivery Available** if customers should have the option to pay for immediate home delivery with a set price
+   - Set the **Home Delivery Price** (defaults to $150)
+   - OR check **Show "Contact Us" for Home Delivery** to display a message that home delivery may be available after contacting the store
+5. Save the product
 
 ## Customer Experience
 
@@ -44,9 +47,10 @@ A WooCommerce plugin for managing courier delivery options for garden sheds with
 When a customer adds a product with delivery options to their cart:
 
 1. **Depot Selection**: On the checkout page, they will see a dropdown to select their preferred depot location (filtered by the product's assigned courier)
-2. **Home Delivery Option**: If available, they can check a box to opt for home delivery instead
-3. **Pricing**: If home delivery is selected, the delivery fee is automatically added to the order total
-4. **Validation**: The system validates that either a depot is selected OR home delivery is chosen
+2. **Home Delivery Option** (if enabled): They can check a box to opt for home delivery instead
+3. **Contact for Delivery Notice** (if enabled): A message displays: "Home delivery may be an option - please contact us after completing your order"
+4. **Pricing**: If home delivery is selected, the delivery fee is automatically added to the order total
+5. **Validation**: The system validates that either a depot is selected OR home delivery is chosen
 
 ### Order Confirmation
 
@@ -82,12 +86,14 @@ garden-sheds-delivery/
   - `_gsd_courier`: Assigned courier slug
   - `_gsd_home_delivery_available`: Whether home delivery is available (yes/no)
   - `_gsd_home_delivery_price`: Home delivery price
+  - `_gsd_contact_for_delivery`: Whether to show "contact us" message (yes/no)
 - **Order Data**: Stored as order meta data:
   - `_gsd_depot`: Selected depot ID
   - `_gsd_depot_name`: Selected depot name
   - `_gsd_courier`: Courier company name
   - `_gsd_home_delivery`: Whether home delivery was selected (yes/no)
   - `_gsd_home_delivery_price`: Home delivery price charged
+  - `_gsd_contact_for_delivery`: Whether "contact us" option was shown (yes/no)
 
 ## Requirements
 
