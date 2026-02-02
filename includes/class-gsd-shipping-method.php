@@ -101,7 +101,7 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
                             $rate = array(
                                 'id' => $this->get_rate_id() . ':depot:' . $depot['id'],
                                 'label' => sprintf(__('Pickup from %s', 'garden-sheds-delivery'), $depot['name']),
-                                'cost' => '0', // Depot pickup is free - use string for WooCommerce compatibility
+                                'cost' => 0, // Depot pickup is free
                                 'meta_data' => array(
                                     'depot_id' => $depot['id'],
                                     'depot_name' => $depot['name'],
@@ -118,13 +118,13 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
 
         // Add home delivery rate if available
         if ($has_home_delivery && $home_delivery_price > 0) {
-            // Ensure cost is a string for WooCommerce compatibility
-            $delivery_cost = number_format((float)$home_delivery_price, 2, '.', '');
+            // WooCommerce expects numeric cost, not formatted string
+            $delivery_cost = (float)$home_delivery_price;
             
             $rate = array(
                 'id' => $this->get_rate_id() . ':home_delivery',
                 'label' => sprintf(__('Home Delivery (+%s)', 'garden-sheds-delivery'), wc_price($delivery_cost)),
-                'cost' => $delivery_cost, // String format for WooCommerce
+                'cost' => $delivery_cost, // Pass as numeric value
                 'meta_data' => array(
                     'delivery_type' => 'home_delivery',
                     'home_delivery_price' => $delivery_cost
