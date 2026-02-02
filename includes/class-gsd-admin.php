@@ -257,7 +257,7 @@ class GSD_Admin {
                         <strong><?php echo esc_html__('Product-Specific Pricing:', 'garden-sheds-delivery'); ?></strong>
                         <?php echo esc_html__('Each product can override the default cost with a custom home delivery price.', 'garden-sheds-delivery'); ?>
                         <br>
-                        <em><?php echo esc_html__('→ Set this in the product\'s "Delivery Options" tab when editing a product', 'garden-sheds-delivery'); ?></em>
+                        <em><?php echo esc_html__('→ Set this in the product "Delivery Options" tab when editing a product', 'garden-sheds-delivery'); ?></em>
                     </li>
                     
                     <li>
