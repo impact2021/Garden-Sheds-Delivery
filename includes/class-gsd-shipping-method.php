@@ -99,6 +99,11 @@ class GSD_Shipping_Method extends WC_Shipping_Method {
             if (!empty($courier)) {
                 return true;
             }
+            
+            // Also check if product has home delivery available through category settings
+            if (GSD_Product_Settings::is_home_delivery_available($product_id)) {
+                return true;
+            }
         }
         return false;
     }
