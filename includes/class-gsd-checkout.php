@@ -214,19 +214,25 @@ class GSD_Checkout {
         foreach ($chosen_methods as $chosen_method) {
             // Check if this is our shipping method with home delivery
             if (strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':home_delivery') !== false) {
-                $home_delivery_price = $this->get_delivery_price_from_package($package, 'home');
-                
-                if ($home_delivery_price > 0) {
-                    WC()->cart->add_fee(__('Home Delivery', 'garden-sheds-delivery'), $home_delivery_price, true);
+                // Validate that products in package actually support home delivery
+                if ($this->package_has_home_delivery($package)) {
+                    $home_delivery_price = $this->get_delivery_price_from_package($package, 'home');
+                    
+                    if ($home_delivery_price > 0) {
+                        WC()->cart->add_fee(__('Home Delivery', 'garden-sheds-delivery'), $home_delivery_price, true);
+                    }
                 }
                 break;
             }
             // Check if this is our shipping method with small item delivery
             elseif (strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':express_delivery') !== false) {
-                $express_delivery_price = $this->get_delivery_price_from_package($package, 'express');
-                
-                if ($express_delivery_price > 0) {
-                    WC()->cart->add_fee(__('Small Item Delivery', 'garden-sheds-delivery'), $express_delivery_price, true);
+                // Validate that products in package actually support small item delivery
+                if ($this->package_has_express_delivery($package)) {
+                    $express_delivery_price = $this->get_delivery_price_from_package($package, 'express');
+                    
+                    if ($express_delivery_price > 0) {
+                        WC()->cart->add_fee(__('Small Item Delivery', 'garden-sheds-delivery'), $express_delivery_price, true);
+                    }
                 }
                 break;
             }
@@ -257,5 +263,37 @@ class GSD_Checkout {
         }
         
         return 0;
+    }
+
+    /**
+     * Check if package has home delivery option
+     *
+     * @param array $package Package information
+     * @return bool
+     */
+    private function package_has_home_delivery($package) {
+        foreach ($package['contents'] as $item) {
+            $product_id = $item['product_id'];
+            if (GSD_Product_Settings::is_home_delivery_available($product_id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if package has express/small item delivery option
+     *
+     * @param array $package Package information
+     * @return bool
+     */
+    private function package_has_express_delivery($package) {
+        foreach ($package['contents'] as $item) {
+            $product_id = $item['product_id'];
+            if (GSD_Product_Settings::is_express_delivery_available($product_id)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
