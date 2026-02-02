@@ -118,6 +118,7 @@ function gsd_create_default_data() {
         'main_freight' => array(
             'name' => 'Main Freight',
             'slug' => 'main_freight',
+            'enabled' => true,
             'depots' => array(
                 array('id' => 'mf_depot_1', 'name' => 'Auckland Depot'),
                 array('id' => 'mf_depot_2', 'name' => 'Wellington Depot'),
@@ -127,6 +128,7 @@ function gsd_create_default_data() {
         'pbt' => array(
             'name' => 'PBT',
             'slug' => 'pbt',
+            'enabled' => true,
             'depots' => array(
                 array('id' => 'pbt_depot_1', 'name' => 'North Island Hub'),
                 array('id' => 'pbt_depot_2', 'name' => 'South Island Hub'),

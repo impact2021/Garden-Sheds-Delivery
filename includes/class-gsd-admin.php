@@ -56,6 +56,7 @@ class GSD_Admin {
         register_setting('gsd_settings', 'gsd_courier_companies');
         register_setting('gsd_settings', 'gsd_home_delivery_categories');
         register_setting('gsd_settings', 'gsd_default_home_delivery_cost');
+        register_setting('gsd_settings', 'gsd_show_contact_for_delivery');
     }
 
     /**
@@ -71,6 +72,7 @@ class GSD_Admin {
         $couriers = GSD_Courier::get_couriers();
         $selected_categories = get_option('gsd_home_delivery_categories', array());
         $default_cost = get_option('gsd_default_home_delivery_cost', '150');
+        $show_contact_option = get_option('gsd_show_contact_for_delivery', false);
         
         // Get all product categories
         $categories = get_terms(array(
@@ -129,6 +131,23 @@ class GSD_Admin {
                             <?php endif; ?>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">
+                            <label><?php echo esc_html__('Show Contact for Delivery Option', 'garden-sheds-delivery'); ?></label>
+                        </th>
+                        <td>
+                            <label>
+                                <input type="checkbox" 
+                                       name="gsd_show_contact_for_delivery" 
+                                       value="1"
+                                       <?php checked($show_contact_option, true); ?> />
+                                <?php echo esc_html__('Show "Home delivery may be possible. Contact us to see if we can arrange for home delivery." message', 'garden-sheds-delivery'); ?>
+                            </label>
+                            <p class="description">
+                                <?php echo esc_html__('When enabled, this message will be displayed on cart and checkout pages for products with delivery options.', 'garden-sheds-delivery'); ?>
+                            </p>
+                        </td>
+                    </tr>
                 </table>
                 
                 <hr style="margin: 30px 0;" />
@@ -139,6 +158,7 @@ class GSD_Admin {
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
+                            <th style="width: 60px;"><?php echo esc_html__('Enabled', 'garden-sheds-delivery'); ?></th>
                             <th><?php echo esc_html__('Courier Name', 'garden-sheds-delivery'); ?></th>
                             <th><?php echo esc_html__('Slug', 'garden-sheds-delivery'); ?></th>
                             <th><?php echo esc_html__('Depot Locations', 'garden-sheds-delivery'); ?></th>
@@ -147,6 +167,15 @@ class GSD_Admin {
                     <tbody>
                         <?php foreach ($couriers as $slug => $courier) : ?>
                         <tr>
+                            <td style="text-align: center;">
+                                <?php 
+                                $enabled = isset($courier['enabled']) ? $courier['enabled'] : true;
+                                ?>
+                                <input type="checkbox" 
+                                       name="couriers[<?php echo esc_attr($slug); ?>][enabled]" 
+                                       value="1"
+                                       <?php checked($enabled, true); ?> />
+                            </td>
                             <td>
                                 <input type="text" 
                                        name="couriers[<?php echo esc_attr($slug); ?>][name]" 
@@ -240,6 +269,7 @@ class GSD_Admin {
             $couriers[$slug] = array(
                 'name' => sanitize_text_field($courier_data['name']),
                 'slug' => sanitize_key($courier_data['slug']),
+                'enabled' => isset($courier_data['enabled']) && $courier_data['enabled'] === '1',
                 'depots' => array(),
             );
 
@@ -273,5 +303,9 @@ class GSD_Admin {
             ? sanitize_text_field($_POST['gsd_default_home_delivery_cost']) 
             : '150';
         update_option('gsd_default_home_delivery_cost', $cost);
+
+        // Save show contact for delivery option
+        $show_contact = isset($_POST['gsd_show_contact_for_delivery']) && $_POST['gsd_show_contact_for_delivery'] === '1';
+        update_option('gsd_show_contact_for_delivery', $show_contact);
     }
 }

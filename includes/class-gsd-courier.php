@@ -42,6 +42,24 @@ class GSD_Courier {
     }
 
     /**
+     * Get only enabled courier companies
+     */
+    public static function get_enabled_couriers() {
+        $couriers = self::get_couriers();
+        $enabled = array();
+        
+        foreach ($couriers as $slug => $courier) {
+            // Default to enabled if 'enabled' key doesn't exist (for backwards compatibility)
+            $is_enabled = isset($courier['enabled']) ? $courier['enabled'] : true;
+            if ($is_enabled) {
+                $enabled[$slug] = $courier;
+            }
+        }
+        
+        return $enabled;
+    }
+
+    /**
      * Get a specific courier by slug
      */
     public static function get_courier($slug) {

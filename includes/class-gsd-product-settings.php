@@ -58,8 +58,8 @@ class GSD_Product_Settings {
         <div id="gsd_delivery_data" class="panel woocommerce_options_panel">
             <div class="options_group">
                 <?php
-                // Courier selection
-                $couriers = GSD_Courier::get_couriers();
+                // Courier selection - only show enabled couriers
+                $couriers = GSD_Courier::get_enabled_couriers();
                 $courier_options = array('' => __('Select Courier', 'garden-sheds-delivery'));
                 foreach ($couriers as $slug => $courier) {
                     $courier_options[$slug] = $courier['name'];
