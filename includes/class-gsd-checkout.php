@@ -203,14 +203,18 @@ class GSD_Checkout {
             return;
         }
 
+        // Get the shipping package once
+        $packages = WC()->cart->get_shipping_packages();
+        if (empty($packages)) {
+            return;
+        }
+        $package = $packages[0];
+
         // Check each chosen shipping method
         foreach ($chosen_methods as $chosen_method) {
             // Check if this is our shipping method with home delivery
             if (strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':home_delivery') !== false) {
-                // Get the home delivery price from the cart
-                $package = WC()->cart->get_shipping_packages()[0];
-                $shipping_method = new GSD_Shipping_Method();
-                $home_delivery_price = $shipping_method->get_package_home_delivery_price($package);
+                $home_delivery_price = $this->get_delivery_price_from_package($package, 'home');
                 
                 if ($home_delivery_price > 0) {
                     WC()->cart->add_fee(__('Home Delivery', 'garden-sheds-delivery'), $home_delivery_price, true);
@@ -219,10 +223,7 @@ class GSD_Checkout {
             }
             // Check if this is our shipping method with small item delivery
             elseif (strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':express_delivery') !== false) {
-                // Get the express delivery price from the cart
-                $package = WC()->cart->get_shipping_packages()[0];
-                $shipping_method = new GSD_Shipping_Method();
-                $express_delivery_price = $shipping_method->get_package_express_delivery_price($package);
+                $express_delivery_price = $this->get_delivery_price_from_package($package, 'express');
                 
                 if ($express_delivery_price > 0) {
                     WC()->cart->add_fee(__('Small Item Delivery', 'garden-sheds-delivery'), $express_delivery_price, true);
@@ -230,5 +231,31 @@ class GSD_Checkout {
                 break;
             }
         }
+    }
+
+    /**
+     * Get delivery price from package
+     * 
+     * Helper method to retrieve delivery price for a given package
+     *
+     * @param array $package The shipping package
+     * @param string $type Type of delivery: 'home' or 'express'
+     * @return float The delivery price
+     */
+    private function get_delivery_price_from_package($package, $type) {
+        static $shipping_method = null;
+        
+        // Create shipping method instance only once
+        if ($shipping_method === null) {
+            $shipping_method = new GSD_Shipping_Method();
+        }
+        
+        if ($type === 'home') {
+            return $shipping_method->get_package_home_delivery_price($package);
+        } elseif ($type === 'express') {
+            return $shipping_method->get_package_express_delivery_price($package);
+        }
+        
+        return 0;
     }
 }
