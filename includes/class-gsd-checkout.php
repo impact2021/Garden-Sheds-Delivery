@@ -106,6 +106,12 @@ class GSD_Checkout {
                         }
                     }
                     
+                    // Validate courier slug before using in POST key
+                    $allowed_couriers = array('main_freight', 'pbt');
+                    if (!in_array($courier_slug, $allowed_couriers, true)) {
+                        continue;
+                    }
+                    
                     // Get selected depot from POST data
                     $selected_depot_id = isset($_POST['gsd_depot_' . $courier_slug]) ? sanitize_text_field($_POST['gsd_depot_' . $courier_slug]) : '';
                     $selected_depot_name = '';
@@ -401,15 +407,14 @@ class GSD_Checkout {
         $selected_depot = WC()->session->get('gsd_selected_depot_' . $courier_slug, '');
         
         ?>
-        <div class="gsd-depot-dropdown-wrapper" data-method-id="<?php echo esc_attr($method->get_id()); ?>" style="display: none; margin-top: 10px; margin-left: 25px;">
+        <div class="gsd-depot-dropdown-wrapper" data-method-id="<?php echo esc_attr($method->get_id()); ?>">
             <label for="gsd_depot_<?php echo esc_attr($courier_slug); ?>">
                 <?php esc_html_e('Select depot location:', 'garden-sheds-delivery'); ?>
             </label>
             <select name="gsd_depot_<?php echo esc_attr($courier_slug); ?>" 
                     id="gsd_depot_<?php echo esc_attr($courier_slug); ?>" 
                     class="gsd-depot-select" 
-                    data-courier="<?php echo esc_attr($courier_slug); ?>"
-                    style="width: 100%; max-width: 400px; margin-top: 5px;">
+                    data-courier="<?php echo esc_attr($courier_slug); ?>">
                 <option value=""><?php esc_html_e('-- Select a depot --', 'garden-sheds-delivery'); ?></option>
                 <?php foreach ($depots as $depot) : ?>
                     <?php if (isset($depot['id']) && isset($depot['name'])) : ?>

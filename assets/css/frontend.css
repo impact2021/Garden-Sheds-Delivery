@@ -137,6 +137,7 @@
 
 /* Depot dropdown styles */
 .gsd-depot-dropdown-wrapper {
+    display: none; /* Hidden by default, shown via JavaScript */
     margin-top: 10px;
     margin-left: 25px;
     padding: 10px;
@@ -155,6 +156,7 @@
 .gsd-depot-dropdown-wrapper select {
     width: 100%;
     max-width: 400px;
+    margin-top: 5px;
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 3px;

@@ -37,7 +37,8 @@ jQuery(document).ready(function($) {
             sessionStorage.setItem('gsd_depot_' + courier, depotId);
             sessionStorage.setItem('gsd_depot_name_' + courier, depotName);
         } catch (e) {
-            // Session storage not available
+            // Session storage not available - log warning but continue
+            console.warn('Session storage unavailable for depot selection:', e);
         }
     }
 
@@ -53,7 +54,8 @@ jQuery(document).ready(function($) {
                     $(this).val(savedDepot);
                 }
             } catch (e) {
-                // Session storage not available
+                // Session storage not available - log warning but continue
+                console.warn('Session storage unavailable for depot restoration:', e);
             }
         });
     }
