@@ -170,11 +170,20 @@ class GSD_Product_Settings {
      * Check if home delivery is available for product
      */
     public static function is_home_delivery_available($product_id) {
-        // Get allowed categories from admin settings
+        // Check individual product setting first
+        $product_setting = get_post_meta($product_id, '_gsd_home_delivery_available', true);
+        
+        // If product has explicit setting, use it
+        if ($product_setting === 'yes') {
+            return true;
+        } elseif ($product_setting === 'no') {
+            return false;
+        }
+        
+        // No explicit product setting, check category-level setting
         $allowed_categories = get_option('gsd_home_delivery_categories', array());
         
         // If no categories have home delivery enabled globally, return false
-        // This makes admin settings the master control
         if (empty($allowed_categories)) {
             return false;
         }
@@ -210,7 +219,17 @@ class GSD_Product_Settings {
      * Check if "contact for delivery" option is enabled
      */
     public static function is_contact_for_delivery($product_id) {
-        // Get allowed categories from admin settings
+        // Check individual product setting first
+        $product_setting = get_post_meta($product_id, '_gsd_contact_for_delivery', true);
+        
+        // If product has explicit setting, use it
+        if ($product_setting === 'yes') {
+            return true;
+        } elseif ($product_setting === 'no') {
+            return false;
+        }
+        
+        // No explicit product setting, check category-level setting
         $allowed_categories = get_option('gsd_contact_delivery_categories', array());
         
         // If no categories have contact delivery enabled globally, return false
@@ -235,11 +254,20 @@ class GSD_Product_Settings {
      * Check if express delivery is available for product
      */
     public static function is_express_delivery_available($product_id) {
-        // Get allowed categories from admin settings
+        // Check individual product setting first
+        $product_setting = get_post_meta($product_id, '_gsd_express_delivery_available', true);
+        
+        // If product has explicit setting, use it
+        if ($product_setting === 'yes') {
+            return true;
+        } elseif ($product_setting === 'no') {
+            return false;
+        }
+        
+        // No explicit product setting, check category-level setting
         $allowed_categories = get_option('gsd_express_delivery_categories', array());
         
         // If no categories have express delivery enabled globally, return false
-        // This makes admin settings the master control
         if (empty($allowed_categories)) {
             return false;
         }
