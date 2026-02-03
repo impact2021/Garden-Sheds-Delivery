@@ -488,7 +488,11 @@ class GSD_Admin {
                 var productsRowDiv = productsContainer.closest('.gsd-products-row');
                 
                 // Extract category ID from the products row ID (format: gsd-products-{categoryId})
-                var categoryId = productsRowDiv.attr('id').replace('gsd-products-', '');
+                var productsRowId = productsRowDiv.attr('id');
+                if (!productsRowId) {
+                    return;
+                }
+                var categoryId = productsRowId.replace('gsd-products-', '');
                 
                 // Update the category checkbox state based on all product checkboxes
                 updateCategoryCheckboxStates(categoryId);
