@@ -2,6 +2,32 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.5.4] - 2026-02-03
+
+### Added
+- **Category-to-Product Delivery Inheritance**: Products now automatically inherit delivery options from their category
+  - When a category has home delivery enabled, all products in that category default to home delivery checked
+  - Same inheritance applies to Small Items and Contact for Delivery options
+  - Individual products can still be unchecked to disable specific delivery methods
+- **Indeterminate Checkbox State**: Category checkboxes show indeterminate state (solid square) when products have mixed settings
+  - Checked: All products in category have the delivery option enabled
+  - Unchecked: No products in category have the delivery option enabled
+  - Indeterminate: Some but not all products have the delivery option enabled
+- **Category Checkbox Control**: Clicking a category checkbox now updates all visible product checkboxes
+  - Checking a category checkbox checks all product checkboxes of that type
+  - Unchecking a category checkbox unchecks all product checkboxes of that type
+  - Works in real-time when products are expanded and visible
+
+### Changed
+- Product delivery checkboxes now inherit default state from category settings on load
+- Category checkbox states dynamically update based on product checkbox states after loading or saving
+
+### Technical
+- Modified: `includes/class-gsd-admin.php` - Enhanced `ajax_get_category_products()` to check category settings and inherit defaults
+- Modified: `includes/class-gsd-admin.php` - Added JavaScript functions `updateCategoryCheckboxStates()` and `updateCheckboxState()` for indeterminate state
+- Modified: `includes/class-gsd-admin.php` - Added category checkbox change handler to propagate changes to products
+- Modified: `garden-sheds-delivery.php` - Updated version to 1.5.4
+
 ## [1.5.2] - 2026-02-03
 
 ### Added

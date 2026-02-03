@@ -329,6 +329,8 @@ class GSD_Admin {
                         if (response.success) {
                             container.html(response.data.html);
                             $('#gsd-products-' + categoryId).addClass('loaded');
+                            // Update category checkbox states based on loaded products
+                            updateCategoryCheckboxStates(categoryId);
                         } else {
                             container.html('<div class="notice notice-error" style="margin: 10px;"><p>' + 
                                 (response.data.message || '<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>') + 
@@ -376,6 +378,8 @@ class GSD_Admin {
                             setTimeout(function() {
                                 button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
                             }, 2000);
+                            // Update category checkbox states after saving
+                            updateCategoryCheckboxStates(categoryId);
                         } else {
                             alert(response.data.message || '<?php echo esc_js(__('Error saving settings', 'garden-sheds-delivery')); ?>');
                             button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
@@ -386,6 +390,94 @@ class GSD_Admin {
                         button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
                     }
                 });
+            });
+            
+            // Update category checkbox states based on product states
+            function updateCategoryCheckboxStates(categoryId) {
+                var categoryRow = $('.gsd-category-row[data-category-id="' + categoryId + '"]');
+                var productsContainer = $('#gsd-products-' + categoryId + ' .gsd-products-container');
+                
+                if (!productsContainer.length || !categoryRow.length) {
+                    return;
+                }
+                
+                // Get all product checkboxes
+                var homeCheckboxes = productsContainer.find('.gsd-product-home-delivery');
+                var expressCheckboxes = productsContainer.find('.gsd-product-express-delivery');
+                var contactCheckboxes = productsContainer.find('.gsd-product-contact-delivery');
+                
+                // Get category checkboxes
+                var categoryHomeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
+                var categoryExpressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
+                var categoryContactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
+                
+                // Update each category checkbox based on product states
+                updateCheckboxState(categoryHomeCheckbox, homeCheckboxes);
+                updateCheckboxState(categoryExpressCheckbox, expressCheckboxes);
+                updateCheckboxState(categoryContactCheckbox, contactCheckboxes);
+            }
+            
+            // Helper to set checkbox to checked, unchecked, or indeterminate
+            function updateCheckboxState(categoryCheckbox, productCheckboxes) {
+                if (!categoryCheckbox || productCheckboxes.length === 0) {
+                    return;
+                }
+                
+                var checkedCount = 0;
+                productCheckboxes.each(function() {
+                    if ($(this).is(':checked')) {
+                        checkedCount++;
+                    }
+                });
+                
+                if (checkedCount === 0) {
+                    // None checked
+                    categoryCheckbox.checked = false;
+                    categoryCheckbox.indeterminate = false;
+                } else if (checkedCount === productCheckboxes.length) {
+                    // All checked
+                    categoryCheckbox.checked = true;
+                    categoryCheckbox.indeterminate = false;
+                } else {
+                    // Some checked (indeterminate)
+                    categoryCheckbox.checked = false;
+                    categoryCheckbox.indeterminate = true;
+                }
+            }
+            
+            // Handle category checkbox changes - update all product checkboxes when category checkbox is clicked
+            $(document).on('change', '.gsd-category-row input[type="checkbox"]', function() {
+                var checkbox = $(this);
+                var categoryRow = checkbox.closest('.gsd-category-row');
+                var categoryId = categoryRow.data('category-id');
+                var productsRow = $('#gsd-products-' + categoryId);
+                
+                // Only update products if they are loaded and expanded
+                if (!productsRow.hasClass('loaded')) {
+                    return;
+                }
+                
+                var isChecked = checkbox.is(':checked');
+                var productsContainer = productsRow.find('.gsd-products-container');
+                
+                // Determine which type of checkbox this is
+                var checkboxName = checkbox.attr('name');
+                var productCheckboxClass = '';
+                
+                if (checkboxName && checkboxName.indexOf('gsd_home_delivery_categories') > -1) {
+                    productCheckboxClass = '.gsd-product-home-delivery';
+                } else if (checkboxName && checkboxName.indexOf('gsd_express_delivery_categories') > -1) {
+                    productCheckboxClass = '.gsd-product-express-delivery';
+                } else if (checkboxName && checkboxName.indexOf('gsd_contact_delivery_categories') > -1) {
+                    productCheckboxClass = '.gsd-product-contact-delivery';
+                }
+                
+                if (productCheckboxClass) {
+                    // Update all product checkboxes of this type
+                    productsContainer.find(productCheckboxClass).prop('checked', isChecked);
+                    // Clear indeterminate state
+                    checkbox[0].indeterminate = false;
+                }
             });
         });
         </script>
@@ -806,6 +898,20 @@ class GSD_Admin {
             ));
         }
         
+        // Get category-level delivery settings
+        $selected_home_delivery = get_option('gsd_home_delivery_categories', array());
+        $selected_express_delivery = get_option('gsd_express_delivery_categories', array());
+        $selected_contact_delivery = get_option('gsd_contact_delivery_categories', array());
+        
+        $selected_home_delivery = is_array($selected_home_delivery) ? $selected_home_delivery : array();
+        $selected_express_delivery = is_array($selected_express_delivery) ? $selected_express_delivery : array();
+        $selected_contact_delivery = is_array($selected_contact_delivery) ? $selected_contact_delivery : array();
+        
+        // Check if category has delivery options enabled
+        $category_has_home_delivery = in_array($category_id, $selected_home_delivery);
+        $category_has_express_delivery = in_array($category_id, $selected_express_delivery);
+        $category_has_contact_delivery = in_array($category_id, $selected_contact_delivery);
+        
         // Build products table HTML
         ob_start();
         ?>
@@ -820,9 +926,15 @@ class GSD_Admin {
             </thead>
             <tbody>
                 <?php foreach ($products as $product) : 
-                    $home_delivery = get_post_meta($product->ID, '_gsd_home_delivery_available', true) === 'yes';
-                    $express_delivery = get_post_meta($product->ID, '_gsd_express_delivery_available', true) === 'yes';
-                    $contact_delivery = get_post_meta($product->ID, '_gsd_contact_for_delivery', true) === 'yes';
+                    // Get product meta, or use category default if not set
+                    $home_delivery_meta = get_post_meta($product->ID, '_gsd_home_delivery_available', true);
+                    $express_delivery_meta = get_post_meta($product->ID, '_gsd_express_delivery_available', true);
+                    $contact_delivery_meta = get_post_meta($product->ID, '_gsd_contact_for_delivery', true);
+                    
+                    // If meta is empty, inherit from category; otherwise use saved value
+                    $home_delivery = ($home_delivery_meta === '') ? $category_has_home_delivery : ($home_delivery_meta === 'yes');
+                    $express_delivery = ($express_delivery_meta === '') ? $category_has_express_delivery : ($express_delivery_meta === 'yes');
+                    $contact_delivery = ($contact_delivery_meta === '') ? $category_has_contact_delivery : ($contact_delivery_meta === 'yes');
                 ?>
                 <tr class="gsd-product-row" data-product-id="<?php echo esc_attr($product->ID); ?>">
                     <td class="gsd-product-name">
