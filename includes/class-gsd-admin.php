@@ -344,16 +344,17 @@ class GSD_Admin {
             }
             
             // Auto-save individual product when checkbox changes
-            var saveTimeout = null;
+            var saveTimeouts = {}; // Track timeouts per category
+            var AUTO_SAVE_DEBOUNCE_MS = 500;
             
             function autoSaveProductSettings(categoryId) {
-                // Clear any pending save
-                if (saveTimeout) {
-                    clearTimeout(saveTimeout);
+                // Clear any pending save for this category
+                if (saveTimeouts[categoryId]) {
+                    clearTimeout(saveTimeouts[categoryId]);
                 }
                 
-                // Debounce saves by 500ms to avoid excessive AJAX calls
-                saveTimeout = setTimeout(function() {
+                // Debounce saves to avoid excessive AJAX calls
+                saveTimeouts[categoryId] = setTimeout(function() {
                     var container = $('#gsd-products-' + categoryId + ' .gsd-products-container');
                     var productSettings = [];
                     
@@ -380,7 +381,7 @@ class GSD_Admin {
                         success: function(response) {
                             if (response.success) {
                                 // Optionally show a brief success indicator
-                                console.log('Product settings saved successfully');
+                                console.log('Product settings saved successfully for category ' + categoryId);
                             } else {
                                 console.error('Error saving product settings:', response.data.message);
                             }
@@ -389,7 +390,10 @@ class GSD_Admin {
                             console.error('Error saving product settings');
                         }
                     });
-                }, 500);
+                    
+                    // Clean up timeout reference
+                    delete saveTimeouts[categoryId];
+                }, AUTO_SAVE_DEBOUNCE_MS);
             }
             
             // Update category checkbox states based on product states
