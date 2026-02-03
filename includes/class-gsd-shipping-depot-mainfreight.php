@@ -20,8 +20,8 @@ class GSD_Shipping_Depot_Mainfreight extends WC_Shipping_Method {
     public function __construct($instance_id = 0) {
         $this->id = 'gsd_depot_mainfreight';
         $this->instance_id = absint($instance_id);
-        $this->method_title = __('Depot Pickup (Mainfreight)', 'garden-sheds-delivery');
-        $this->method_description = __('Pickup from Mainfreight depot locations', 'garden-sheds-delivery');
+        $this->method_title = __('Depot Pickup', 'garden-sheds-delivery');
+        $this->method_description = __('Pickup from depot locations', 'garden-sheds-delivery');
         $this->supports = array(
             'shipping-zones',
             'instance-settings',
@@ -58,7 +58,7 @@ class GSD_Shipping_Depot_Mainfreight extends WC_Shipping_Method {
                 'title' => __('Method Title', 'garden-sheds-delivery'),
                 'type' => 'text',
                 'description' => __('This controls the title which the user sees during checkout.', 'garden-sheds-delivery'),
-                'default' => __('Depot Pickup (Mainfreight)', 'garden-sheds-delivery'),
+                'default' => __('Depot Pickup', 'garden-sheds-delivery'),
                 'desc_tip' => true,
             ),
         );
@@ -93,7 +93,7 @@ class GSD_Shipping_Depot_Mainfreight extends WC_Shipping_Method {
             // Add a single rate for depot pickup with all depots in meta data
             $rate = array(
                 'id' => $this->get_rate_id(),
-                'label' => __('Pickup from Mainfreight Depot', 'garden-sheds-delivery'),
+                'label' => __('Depot Pickup', 'garden-sheds-delivery'),
                 'cost' => 0, // Depot pickup is free
                 'meta_data' => array(
                     'depots' => $depots,

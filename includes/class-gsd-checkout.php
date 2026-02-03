@@ -458,7 +458,7 @@ class GSD_Checkout {
                 $selected_depot = isset($_POST['gsd_depot_main_freight']) ? sanitize_text_field($_POST['gsd_depot_main_freight']) : '';
                 
                 if (empty($selected_depot)) {
-                    $errors->add('shipping', __('Please select a Mainfreight depot location.', 'garden-sheds-delivery'));
+                    $errors->add('shipping', __('Please select a depot location.', 'garden-sheds-delivery'));
                 }
             } elseif (strpos($chosen_method, 'gsd_depot_pbt') !== false) {
                 $selected_depot = isset($_POST['gsd_depot_pbt']) ? sanitize_text_field($_POST['gsd_depot_pbt']) : '';
