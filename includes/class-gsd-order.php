@@ -83,7 +83,7 @@ class GSD_Order {
         if ($courier) {
             echo '<tr>';
             echo '<th>' . esc_html__('Courier:', 'garden-sheds-delivery') . '</th>';
-            echo '<td>' . esc_html($courier) . '</td>';
+            echo '<td>' . esc_html__('To be advised', 'garden-sheds-delivery') . '</td>';
             echo '</tr>';
         }
 
@@ -154,7 +154,7 @@ class GSD_Order {
         echo "\n" . strtoupper(__('Delivery Information', 'garden-sheds-delivery')) . "\n\n";
 
         if ($courier) {
-            echo __('Courier:', 'garden-sheds-delivery') . ' ' . $courier . "\n";
+            echo __('Courier:', 'garden-sheds-delivery') . ' ' . __('To be advised', 'garden-sheds-delivery') . "\n";
         }
 
         if ($home_delivery === 'yes') {
@@ -200,7 +200,7 @@ class GSD_Order {
         echo '<div class="address">';
 
         if ($courier) {
-            echo '<p><strong>' . esc_html__('Courier:', 'garden-sheds-delivery') . '</strong> ' . esc_html($courier) . '</p>';
+            echo '<p><strong>' . esc_html__('Courier:', 'garden-sheds-delivery') . '</strong> ' . esc_html__('To be advised', 'garden-sheds-delivery') . '</p>';
         }
 
         if ($home_delivery === 'yes') {

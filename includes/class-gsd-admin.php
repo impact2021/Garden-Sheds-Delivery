@@ -440,7 +440,7 @@ class GSD_Admin {
                     categoryCheckbox.indeterminate = false;
                 } else {
                     // Some checked (indeterminate)
-                    categoryCheckbox.checked = false;
+                    categoryCheckbox.checked = true;
                     categoryCheckbox.indeterminate = true;
                 }
             }
