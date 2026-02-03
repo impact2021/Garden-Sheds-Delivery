@@ -44,15 +44,15 @@ Users reported two main issues:
 ### 3. Enhanced Error Handling
 
 **Improved AJAX Save Handler** (`includes/class-gsd-admin.php`, `ajax_save_product_shipping` method):
-- **Detailed Error Tracking**: Now tracks and reports individual product save failures
-- **Save Counter**: Reports how many products were successfully saved
-- **Error Messages**: Returns specific error messages for each failure (invalid ID, wrong post type, etc.)
+- **Detailed Error Tracking**: Now tracks and reports individual product validation failures
+- **Save Counter**: Reports how many products were successfully processed
+- **Error Messages**: Returns specific error messages for validation failures (invalid ID, wrong post type, etc.)
 - **Better Validation**: Enhanced validation with descriptive error messages
 
 Before:
 ```php
 foreach ($products as $product_data) {
-    // ... save without tracking success/failure
+    // ... save without tracking validation failures
 }
 wp_send_json_success(array('message' => __('Settings saved successfully')));
 ```
@@ -63,12 +63,15 @@ $saved_count = 0;
 $errors = array();
 
 foreach ($products as $product_data) {
-    // ... save with success tracking
-    if ($result1 !== false || $result2 !== false || $result3 !== false) {
-        $saved_count++;
-    } else {
-        $errors[] = sprintf(__('Failed to update product ID %d'), $product_id);
+    // Validate product data and ID
+    if (!$product_id) {
+        $errors[] = __('Invalid product ID');
+        continue;
     }
+    
+    // ... save all three meta fields
+    // Count as saved since validation passed and updates attempted
+    $saved_count++;
 }
 
 // Return detailed response
@@ -78,6 +81,8 @@ wp_send_json_success(array(
     'errors' => $errors
 ));
 ```
+
+Note: The save count reflects successfully validated products, not individual meta update results. This is because `update_post_meta()` returns false for both errors and unchanged values, making it impractical to distinguish between the two.
 
 ### 4. Error Notifications (New)
 

@@ -159,13 +159,9 @@ class GSD_Admin {
                     <strong><?php echo esc_html__('About Mixed States:', 'garden-sheds-delivery'); ?></strong>
                     <p style="margin: 5px 0 0 0;">
                         <?php 
-                        echo esc_html__('When you expand a category and uncheck individual products, the category checkbox will show a dash (–) instead of a checkmark.', 'garden-sheds-delivery');
-                        echo ' ';
-                        echo esc_html__('This indicates that some products in that category have the shipping option enabled, while others don\'t.', 'garden-sheds-delivery');
-                        echo ' ';
-                        echo esc_html__('The entire row will be highlighted in yellow to make this clear.', 'garden-sheds-delivery');
-                        echo ' ';
-                        echo esc_html__('Changes to individual products are auto-saved immediately.', 'garden-sheds-delivery');
+                        printf(
+                            esc_html__('When you expand a category and uncheck individual products, the category checkbox will show a dash (–) instead of a checkmark. This indicates that some products in that category have the shipping option enabled, while others don\'t. The entire row will be highlighted in yellow to make this clear. Changes to individual products are auto-saved immediately.', 'garden-sheds-delivery')
+                        );
                         ?>
                     </p>
                 </div>
@@ -1126,8 +1122,9 @@ class GSD_Admin {
             $contact_delivery = !empty($product_data['contact_delivery']) ? 'yes' : 'no';
             update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
             
-            // update_post_meta returns meta ID, true, or false. False means error OR unchanged value.
-            // We count the product as saved since we attempted all three updates
+            // Note: update_post_meta returns false for errors OR when value is unchanged.
+            // We count this as successful since all three updates were attempted without exceptions.
+            // This is acceptable because unchanged values aren't errors from a UX perspective.
             $saved_count++;
         }
         
