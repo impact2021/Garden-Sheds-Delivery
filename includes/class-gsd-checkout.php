@@ -116,13 +116,21 @@ class GSD_Checkout {
                     $selected_depot_id = isset($_POST['gsd_depot_' . $courier_slug]) ? sanitize_text_field($_POST['gsd_depot_' . $courier_slug]) : '';
                     $selected_depot_name = '';
                     
-                    // Find depot name from ID
-                    if (!empty($selected_depot_id) && !empty($depots)) {
+                    // Find and validate depot from available depots
+                    if (!empty($selected_depot_id) && !empty($depots) && is_array($depots)) {
+                        $depot_found = false;
                         foreach ($depots as $depot) {
                             if (isset($depot['id']) && $depot['id'] === $selected_depot_id) {
                                 $selected_depot_name = $depot['name'];
+                                $depot_found = true;
                                 break;
                             }
+                        }
+                        
+                        // If depot ID was submitted but not found in available depots, ignore it
+                        if (!$depot_found) {
+                            $selected_depot_id = '';
+                            $selected_depot_name = '';
                         }
                     }
                     

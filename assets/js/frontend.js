@@ -7,6 +7,18 @@
 jQuery(document).ready(function($) {
     'use strict';
 
+    // Check if sessionStorage is available
+    var hasSessionStorage = (function() {
+        try {
+            var test = '__storage_test__';
+            sessionStorage.setItem(test, test);
+            sessionStorage.removeItem(test);
+            return true;
+        } catch(e) {
+            return false;
+        }
+    })();
+
     /**
      * Show/hide depot dropdown based on selected shipping method
      */
@@ -29,16 +41,12 @@ jQuery(document).ready(function($) {
     }
 
     /**
-     * Save depot selection to session via AJAX
+     * Save depot selection to session storage
      */
     function saveDepotSelection(courier, depotId, depotName) {
-        // Store in session storage for persistence
-        try {
+        if (hasSessionStorage) {
             sessionStorage.setItem('gsd_depot_' + courier, depotId);
             sessionStorage.setItem('gsd_depot_name_' + courier, depotName);
-        } catch (e) {
-            // Session storage not available - log warning but continue
-            console.warn('Session storage unavailable for depot selection:', e);
         }
     }
 
@@ -46,18 +54,15 @@ jQuery(document).ready(function($) {
      * Restore depot selection from session storage
      */
     function restoreDepotSelection() {
-        $('.gsd-depot-select').each(function() {
-            var courier = $(this).data('courier');
-            try {
+        if (hasSessionStorage) {
+            $('.gsd-depot-select').each(function() {
+                var courier = $(this).data('courier');
                 var savedDepot = sessionStorage.getItem('gsd_depot_' + courier);
                 if (savedDepot) {
                     $(this).val(savedDepot);
                 }
-            } catch (e) {
-                // Session storage not available - log warning but continue
-                console.warn('Session storage unavailable for depot restoration:', e);
-            }
-        });
+            });
+        }
     }
 
     // Toggle depot dropdown when shipping method changes

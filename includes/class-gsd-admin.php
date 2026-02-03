@@ -541,14 +541,23 @@ class GSD_Admin {
      * are recalculated even if items are already in the cart
      */
     private function clear_shipping_cache() {
-        // Delete all shipping transients using prepared statement
+        // Delete all shipping transients
         global $wpdb;
+        
+        $shipping_pattern = $wpdb->esc_like('_transient_shipping_') . '%';
+        $timeout_pattern = $wpdb->esc_like('_transient_timeout_shipping_') . '%';
         
         $wpdb->query(
             $wpdb->prepare(
-                "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-                $wpdb->esc_like('_transient_shipping_') . '%',
-                $wpdb->esc_like('_transient_timeout_shipping_') . '%'
+                "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+                $shipping_pattern
+            )
+        );
+        
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+                $timeout_pattern
             )
         );
         
