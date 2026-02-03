@@ -140,7 +140,7 @@ class GSD_Checkout {
                     if (!empty($selected_depot_id) && !empty($selected_depot_name)) {
                         $order->update_meta_data('_gsd_depot', $selected_depot_id);
                         $order->update_meta_data('_gsd_depot_name', $selected_depot_name);
-                        $order->update_meta_data('_gsd_courier', $courier_name);
+                        $order->update_meta_data('_gsd_courier', 'To be advised');
                     }
                     
                     $order->update_meta_data('_gsd_home_delivery', 'no');
@@ -154,7 +154,7 @@ class GSD_Checkout {
                         } elseif ($data['key'] === 'depot_name') {
                             $order->update_meta_data('_gsd_depot_name', $data['value']);
                         } elseif ($data['key'] === 'courier_name') {
-                            $order->update_meta_data('_gsd_courier', $data['value']);
+                            $order->update_meta_data('_gsd_courier', 'To be advised');
                         }
                     }
                     $order->update_meta_data('_gsd_home_delivery', 'no');
