@@ -155,6 +155,11 @@ class GSD_Admin {
                 <h2><?php echo esc_html__('Delivery Options by Category', 'garden-sheds-delivery'); ?></h2>
                 <p><?php echo esc_html__('Configure delivery options for each product category.', 'garden-sheds-delivery'); ?></p>
                 
+                <div class="gsd-mixed-state-notice">
+                    <strong><?php echo esc_html__('About Mixed States:', 'garden-sheds-delivery'); ?></strong>
+                    <?php echo esc_html__('When you expand a category and uncheck individual products, the category checkbox will show a dash (–) instead of a checkmark. This indicates that some products in that category have the shipping option enabled, while others don\'t. The entire row will be highlighted in yellow to make this clear. Changes to individual products are auto-saved immediately.', 'garden-sheds-delivery'); ?>
+                </div>
+                
                 <?php if (!empty($categories) && !is_wp_error($categories)) : ?>
                 <table class="wp-list-table widefat fixed striped gsd-category-table">
                     <thead>
@@ -477,6 +482,17 @@ class GSD_Admin {
                 updateCheckboxState(categoryHomeCheckbox, homeCheckboxes);
                 updateCheckboxState(categoryExpressCheckbox, expressCheckboxes);
                 updateCheckboxState(categoryContactCheckbox, contactCheckboxes);
+                
+                // Add visual indicator if any checkbox is indeterminate
+                var hasIndeterminate = (categoryHomeCheckbox && categoryHomeCheckbox.indeterminate) ||
+                                      (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
+                                      (categoryContactCheckbox && categoryContactCheckbox.indeterminate);
+                
+                if (hasIndeterminate) {
+                    categoryRow.addClass('has-indeterminate');
+                } else {
+                    categoryRow.removeClass('has-indeterminate');
+                }
             }
             
             // Helper to set checkbox to checked, unchecked, or indeterminate

@@ -16,6 +16,22 @@
     height: 100%;
 }
 
+/* Highlight category rows with indeterminate checkboxes */
+.gsd-category-row.has-indeterminate {
+    background-color: #fff8e5 !important;
+}
+
+/* Add a visual marker for mixed state */
+.gsd-category-row.has-indeterminate td:first-child::after {
+    content: '⚠';
+    display: inline-block;
+    margin-left: 5px;
+    color: #ffb900;
+    font-size: 16px;
+    vertical-align: middle;
+    cursor: help;
+}
+
 /* Style for category table */
 .gsd-category-table {
     margin-top: 20px;
@@ -123,6 +139,20 @@
 
 .gsd-category-row.has-indeterminate .gsd-indeterminate-warning {
     display: block;
+}
+
+/* Info notice for mixed states */
+.gsd-mixed-state-notice {
+    margin: 15px 0;
+    padding: 12px;
+    background: #e7f3ff;
+    border-left: 4px solid #2196F3;
+    font-size: 14px;
+}
+
+.gsd-mixed-state-notice strong {
+    display: block;
+    margin-bottom: 5px;
 }
 
 /* Responsive adjustments */
