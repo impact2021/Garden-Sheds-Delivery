@@ -2,6 +2,19 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [2.0.1] - 2026-02-03
+
+### Fixed
+- **Product Checkbox Changes Not Updating Category State**: Fixed bug where changing individual product delivery checkboxes did not update the parent category checkbox to show indeterminate state
+  - Category checkboxes now immediately update when product checkboxes are clicked
+  - Product settings are now properly saved and persist after page reload
+  - Indeterminate state correctly displays when some (but not all) products have a delivery option enabled
+
+### Technical
+- Added event listener for product checkbox changes in `includes/class-gsd-admin.php`
+- Added null check for DOM element ID to prevent potential errors
+- Updated version to 2.0.1 in `garden-sheds-delivery.php`
+
 ## [1.5.4] - 2026-02-03
 
 ### Added
