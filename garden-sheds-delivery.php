@@ -130,16 +130,6 @@ function gsd_create_default_data() {
     // Check if data already exists
     $existing_couriers = get_option('gsd_courier_companies', array());
     
-    // If data exists, check if Main Freight has the full depot list
-    if (!empty($existing_couriers) && isset($existing_couriers['main_freight'])) {
-        $mf_depots = isset($existing_couriers['main_freight']['depots']) ? $existing_couriers['main_freight']['depots'] : array();
-        
-        // If Main Freight has at least 27 depots, data is already complete
-        if (count($mf_depots) >= 27) {
-            return;
-        }
-    }
-    
     // Create or update with full default data
     $default_data = array(
         'main_freight' => array(
@@ -189,12 +179,19 @@ function gsd_create_default_data() {
 
     // Merge with existing data to preserve any custom couriers
     if (!empty($existing_couriers)) {
-        // Keep existing PBT if it exists, otherwise use default
-        if (!isset($existing_couriers['pbt'])) {
-            $existing_couriers['pbt'] = $default_data['pbt'];
-        }
         // Always update Main Freight to ensure all depots are present
         $existing_couriers['main_freight'] = $default_data['main_freight'];
+        
+        // Update PBT to ensure it's disabled by default (preserving if already exists)
+        if (!isset($existing_couriers['pbt'])) {
+            $existing_couriers['pbt'] = $default_data['pbt'];
+        } else {
+            // Update enabled status to false if not already set
+            if (!isset($existing_couriers['pbt']['enabled'])) {
+                $existing_couriers['pbt']['enabled'] = false;
+            }
+        }
+        
         update_option('gsd_courier_companies', $existing_couriers);
     } else {
         update_option('gsd_courier_companies', $default_data);
