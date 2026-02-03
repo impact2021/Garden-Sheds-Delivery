@@ -157,7 +157,17 @@ class GSD_Admin {
                 
                 <div class="gsd-mixed-state-notice">
                     <strong><?php echo esc_html__('About Mixed States:', 'garden-sheds-delivery'); ?></strong>
-                    <?php echo esc_html__('When you expand a category and uncheck individual products, the category checkbox will show a dash (–) instead of a checkmark. This indicates that some products in that category have the shipping option enabled, while others don\'t. The entire row will be highlighted in yellow to make this clear. Changes to individual products are auto-saved immediately.', 'garden-sheds-delivery'); ?>
+                    <p style="margin: 5px 0 0 0;">
+                        <?php 
+                        echo esc_html__('When you expand a category and uncheck individual products, the category checkbox will show a dash (–) instead of a checkmark.', 'garden-sheds-delivery');
+                        echo ' ';
+                        echo esc_html__('This indicates that some products in that category have the shipping option enabled, while others don\'t.', 'garden-sheds-delivery');
+                        echo ' ';
+                        echo esc_html__('The entire row will be highlighted in yellow to make this clear.', 'garden-sheds-delivery');
+                        echo ' ';
+                        echo esc_html__('Changes to individual products are auto-saved immediately.', 'garden-sheds-delivery');
+                        ?>
+                    </p>
                 </div>
                 
                 <?php if (!empty($categories) && !is_wp_error($categories)) : ?>
@@ -1106,22 +1116,19 @@ class GSD_Admin {
             
             // Save home delivery setting (only 'yes' or 'no')
             $home_delivery = !empty($product_data['home_delivery']) ? 'yes' : 'no';
-            $result1 = update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
+            update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
             
             // Save express delivery setting (only 'yes' or 'no')
             $express_delivery = !empty($product_data['express_delivery']) ? 'yes' : 'no';
-            $result2 = update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
+            update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
             
             // Save contact for delivery setting (only 'yes' or 'no')
             $contact_delivery = !empty($product_data['contact_delivery']) ? 'yes' : 'no';
-            $result3 = update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
+            update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
             
-            // Check if at least one update succeeded (update_post_meta returns false only on error, not when value unchanged)
-            if ($result1 !== false || $result2 !== false || $result3 !== false) {
-                $saved_count++;
-            } else {
-                $errors[] = sprintf(__('Failed to update product ID %d', 'garden-sheds-delivery'), $product_id);
-            }
+            // update_post_meta returns meta ID, true, or false. False means error OR unchanged value.
+            // We count the product as saved since we attempted all three updates
+            $saved_count++;
         }
         
         // Clear shipping cache

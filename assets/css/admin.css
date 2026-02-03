@@ -8,14 +8,6 @@
     opacity: 1;
 }
 
-/* Add visual indicator next to indeterminate checkboxes */
-.gsd-category-row input[type="checkbox"]:indeterminate::before {
-    content: '';
-    display: inline-block;
-    width: 100%;
-    height: 100%;
-}
-
 /* Highlight category rows with indeterminate checkboxes */
 .gsd-category-row.has-indeterminate {
     background-color: #fff8e5 !important;
