@@ -120,6 +120,11 @@ class GSD_Admin {
         <div class="wrap">
             <h1><?php echo esc_html__('Shed Delivery Settings', 'garden-sheds-delivery'); ?></h1>
             
+            <!-- Auto-save notification -->
+            <div id="gsd-autosave-notification" style="display: none; position: fixed; top: 32px; right: 20px; z-index: 9999; background: #00a32a; color: white; padding: 12px 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                <strong>✓ Settings saved</strong>
+            </div>
+            
             <form method="post" action="">
                 <?php wp_nonce_field('gsd_save_settings'); ?>
                 
@@ -380,7 +385,12 @@ class GSD_Admin {
                         },
                         success: function(response) {
                             if (response.success) {
-                                // Optionally show a brief success indicator
+                                // Show success notification
+                                var notification = $('#gsd-autosave-notification');
+                                notification.fadeIn(200);
+                                setTimeout(function() {
+                                    notification.fadeOut(200);
+                                }, 2000);
                                 console.log('Product settings saved successfully for category ' + categoryId);
                             } else {
                                 console.error('Error saving product settings:', response.data.message);
@@ -444,7 +454,7 @@ class GSD_Admin {
                     categoryCheckbox.indeterminate = false;
                 } else {
                     // Some checked (indeterminate)
-                    categoryCheckbox.checked = true;
+                    categoryCheckbox.checked = false;
                     categoryCheckbox.indeterminate = true;
                 }
             }

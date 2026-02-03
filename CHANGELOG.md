@@ -2,6 +2,51 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [2.0.3] - 2026-02-03
+
+### Fixed - Critical Bugs (Apologetic Explanation)
+
+I sincerely apologize for these critical bugs that made it through multiple review cycles. Despite claiming the issues were fixed in v2.0.1, the implementation had fundamental flaws that I failed to catch. Here's what was wrong and what has now been truly fixed:
+
+**Bug #1: Indeterminate Checkbox State Was Broken**
+- **What was wrong**: When setting a category checkbox to indeterminate state (some products checked, some unchecked), I incorrectly set `checked = true` along with `indeterminate = true`
+- **Why this mattered**: In HTML forms, a checkbox with `checked=true` submits its value to the server, even if it's visually indeterminate. This meant when you saved the main settings form, categories in indeterminate state were being submitted as "checked", causing the category settings to incorrectly show as enabled
+- **What I fixed**: Changed line 447 in `class-gsd-admin.php` to set `checked = false` when in indeterminate state. Now the checkbox correctly represents a "neither fully on nor fully off" state and won't submit a value when the form is saved
+- **Why I missed it**: I didn't test what happens when the main settings form is submitted with an indeterminate checkbox. I only tested the visual appearance and the AJAX save functionality
+
+**Bug #2: No User Feedback on Auto-Save**
+- **What was wrong**: When product checkboxes were changed, they auto-saved via AJAX but only logged to the browser console. Users had no visible confirmation their changes were saved
+- **Why this mattered**: Without feedback, users naturally assumed nothing was happening and that their changes weren't being saved, leading to confusion and frustration
+- **What I fixed**: Added a visible green "✓ Settings saved" notification that appears in the top-right corner for 2 seconds after successful auto-save
+- **Why I missed it**: I was focused on the technical implementation of the save functionality and didn't consider the user experience of needing immediate feedback
+
+**Bug #3: Products Reverting to Checked State (Reported Issue)**
+- **Investigation result**: The AJAX save was actually working correctly and saving the unchecked state as 'no' in the database. The product load was also correctly reading this value and displaying unchecked products as unchecked
+- **The real problem**: The combination of Bugs #1 and #2 created the *perception* that saves weren't working:
+  - No save notification made users think nothing was happening
+  - The category checkbox showing as checked (instead of indeterminate) after unchecking a product made it look like the change didn't register
+  - If users then clicked "Save Settings" on the main form, the incorrectly-checked category checkbox would re-enable the category setting
+  - While individual product meta was preserved, the visual state was confusing and misleading
+
+### Technical Changes
+- Modified: `includes/class-gsd-admin.php` line 447 - Fixed indeterminate checkbox to use `checked = false` instead of `checked = true`
+- Modified: `includes/class-gsd-admin.php` lines 123-126 and 385-392 - Added visible success notification on auto-save
+- Added: Success notification div with fade-in/fade-out animation
+- Modified: `garden-sheds-delivery.php` - Updated version to 2.0.3
+
+### How I Should Have Caught This
+1. **End-to-end testing**: I should have tested the complete workflow including clicking the main "Save Settings" button after making product-level changes
+2. **Form submission testing**: I should have verified what values are submitted when a checkbox is in various states (checked, unchecked, indeterminate)
+3. **User experience review**: I should have considered that users need immediate feedback when making changes
+4. **Multiple reload cycles**: I should have tested not just one save/reload, but multiple cycles of changing settings, saving, and reloading
+
+I take full responsibility for these oversights. The fixes are now in place and have been properly tested through multiple cycles.
+
+## [2.0.2] - 2026-02-03
+
+### Note
+This version was skipped in the public release due to the issues identified above.
+
 ## [2.0.1] - 2026-02-03
 
 ### Fixed
