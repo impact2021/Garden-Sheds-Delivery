@@ -30,7 +30,7 @@ I sincerely apologize for these critical bugs that made it through multiple revi
 
 ### Technical Changes
 - Modified: `includes/class-gsd-admin.php` line 447 - Fixed indeterminate checkbox to use `checked = false` instead of `checked = true`
-- Modified: `includes/class-gsd-admin.php` line 381-388 - Added visible success notification on auto-save
+- Modified: `includes/class-gsd-admin.php` lines 123-126 and 385-392 - Added visible success notification on auto-save
 - Added: Success notification div with fade-in/fade-out animation
 - Modified: `garden-sheds-delivery.php` - Updated version to 2.0.3
 
