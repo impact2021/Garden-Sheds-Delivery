@@ -39,6 +39,27 @@ class GSD_Order {
     }
 
     /**
+     * Format price with GST breakdown
+     * 
+     * @param float $price Price inclusive of GST
+     * @return string Formatted price with GST in brackets
+     */
+    private function format_price_with_gst($price) {
+        if (empty($price) || $price <= 0) {
+            return '';
+        }
+
+        // GST is 10% in Australia, so GST amount = price / 11
+        $gst_amount = $price / 11;
+        
+        return sprintf(
+            '%s (includes %s GST)',
+            wc_price($price),
+            wc_price($gst_amount)
+        );
+    }
+
+    /**
      * Display delivery info on order details page
      */
     public function display_order_delivery_info($order) {
@@ -72,7 +93,7 @@ class GSD_Order {
             echo '<th>' . esc_html__('Delivery Method:', 'garden-sheds-delivery') . '</th>';
             echo '<td>' . esc_html__('Home Delivery', 'garden-sheds-delivery');
             if ($home_delivery_price) {
-                echo ' (' . wc_price($home_delivery_price) . ')';
+                echo ' (' . $this->format_price_with_gst($home_delivery_price) . ')';
             }
             echo '</td>';
             echo '</tr>';
@@ -140,7 +161,7 @@ class GSD_Order {
             $home_delivery_price = $order->get_meta('_gsd_home_delivery_price');
             echo __('Delivery Method:', 'garden-sheds-delivery') . ' ' . __('Home Delivery', 'garden-sheds-delivery');
             if ($home_delivery_price) {
-                echo ' (' . wc_price($home_delivery_price) . ')';
+                echo ' (' . $this->format_price_with_gst($home_delivery_price) . ')';
             }
             echo "\n";
         } elseif ($express_delivery === 'yes') {
@@ -186,7 +207,7 @@ class GSD_Order {
             $home_delivery_price = $order->get_meta('_gsd_home_delivery_price');
             echo '<p><strong>' . esc_html__('Delivery Method:', 'garden-sheds-delivery') . '</strong> ' . esc_html__('Home Delivery', 'garden-sheds-delivery');
             if ($home_delivery_price) {
-                echo ' (' . wc_price($home_delivery_price) . ')';
+                echo ' (' . $this->format_price_with_gst($home_delivery_price) . ')';
             }
             echo '</p>';
         } elseif ($express_delivery === 'yes') {
