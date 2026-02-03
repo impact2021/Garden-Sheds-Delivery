@@ -3,7 +3,7 @@
  * Plugin Name: Garden Sheds Delivery
  * Plugin URI: https://github.com/impact2021/Garden-Sheds-Delivery
  * Description: Manage courier delivery options for garden sheds with multiple depot locations
- * Version: 1.5.2
+ * Version: 1.5.3
  * Author: Impact 2021
  * Author URI: https://github.com/impact2021
  * Text Domain: garden-sheds-delivery
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('GSD_VERSION', '1.5.2');
+define('GSD_VERSION', '1.5.3');
 define('GSD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('GSD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GSD_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -179,7 +179,7 @@ function gsd_create_default_data() {
         'pbt' => array(
             'name' => 'PBT',
             'slug' => 'pbt',
-            'enabled' => true,
+            'enabled' => false,
             'depots' => array(
                 array('id' => 'pbt_depot_1', 'name' => 'North Island Hub'),
                 array('id' => 'pbt_depot_2', 'name' => 'South Island Hub'),

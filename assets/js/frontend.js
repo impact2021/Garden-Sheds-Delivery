@@ -23,21 +23,21 @@ jQuery(document).ready(function($) {
      * Show/hide depot dropdown based on selected shipping method
      */
     function toggleDepotDropdown() {
-        // Hide all depot dropdowns first
-        $('.gsd-depot-dropdown-wrapper').hide();
-        
-        // Get selected shipping method
+        // Get selected shipping method first
         var selectedMethod = $('input[name^="shipping_method"]:checked').val();
         
-        if (selectedMethod) {
-            // Find and show the corresponding depot dropdown
-            $('.gsd-depot-dropdown-wrapper').each(function() {
-                var methodId = $(this).data('method-id');
-                if (selectedMethod === methodId) {
-                    $(this).show();
-                }
-            });
-        }
+        // Toggle each depot dropdown wrapper
+        $('.gsd-depot-dropdown-wrapper').each(function() {
+            var $wrapper = $(this);
+            var methodId = $wrapper.data('method-id');
+            
+            // Show if this dropdown matches the selected method, otherwise hide
+            if (selectedMethod && selectedMethod === methodId) {
+                $wrapper.show();
+            } else {
+                $wrapper.hide();
+            }
+        });
     }
 
     /**
