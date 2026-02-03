@@ -7,9 +7,90 @@
 jQuery(document).ready(function($) {
     'use strict';
 
-    // Ensure checkout updates when shipping method changes
+    // Check if sessionStorage is available
+    var hasSessionStorage = (function() {
+        try {
+            var test = '__storage_test__';
+            sessionStorage.setItem(test, test);
+            sessionStorage.removeItem(test);
+            return true;
+        } catch(e) {
+            return false;
+        }
+    })();
+
+    /**
+     * Show/hide depot dropdown based on selected shipping method
+     */
+    function toggleDepotDropdown() {
+        // Hide all depot dropdowns first
+        $('.gsd-depot-dropdown-wrapper').hide();
+        
+        // Get selected shipping method
+        var selectedMethod = $('input[name^="shipping_method"]:checked').val();
+        
+        if (selectedMethod) {
+            // Find and show the corresponding depot dropdown
+            $('.gsd-depot-dropdown-wrapper').each(function() {
+                var methodId = $(this).data('method-id');
+                if (selectedMethod === methodId) {
+                    $(this).show();
+                }
+            });
+        }
+    }
+
+    /**
+     * Save depot selection to session storage
+     */
+    function saveDepotSelection(courier, depotId, depotName) {
+        if (hasSessionStorage) {
+            sessionStorage.setItem('gsd_depot_' + courier, depotId);
+            sessionStorage.setItem('gsd_depot_name_' + courier, depotName);
+        }
+    }
+
+    /**
+     * Restore depot selection from session storage
+     */
+    function restoreDepotSelection() {
+        if (hasSessionStorage) {
+            $('.gsd-depot-select').each(function() {
+                var courier = $(this).data('courier');
+                var savedDepot = sessionStorage.getItem('gsd_depot_' + courier);
+                if (savedDepot) {
+                    $(this).val(savedDepot);
+                }
+            });
+        }
+    }
+
+    // Toggle depot dropdown when shipping method changes
     $(document.body).on('change', 'input[name^="shipping_method"]', function() {
+        toggleDepotDropdown();
         // Trigger checkout update to recalculate totals
         $(document.body).trigger('update_checkout');
+    });
+
+    // Save depot selection when changed
+    $(document.body).on('change', '.gsd-depot-select', function() {
+        var courier = $(this).data('courier');
+        var depotId = $(this).val();
+        var depotName = $(this).find('option:selected').data('name');
+        
+        saveDepotSelection(courier, depotId, depotName);
+        
+        // Trigger checkout update
+        $(document.body).trigger('update_checkout');
+    });
+
+    // Initialize on page load
+    toggleDepotDropdown();
+    restoreDepotSelection();
+
+    // Re-initialize after AJAX checkout update
+    $(document.body).on('updated_checkout', function() {
+        toggleDepotDropdown();
+        restoreDepotSelection();
     });
 });

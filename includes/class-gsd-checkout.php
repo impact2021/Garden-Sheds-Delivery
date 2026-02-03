@@ -41,6 +41,12 @@ class GSD_Checkout {
         
         // Add delivery fee as separate line item in order summary
         add_action('woocommerce_cart_calculate_fees', array($this, 'add_delivery_fee'));
+        
+        // Add depot dropdown after shipping method
+        add_action('woocommerce_after_shipping_rate', array($this, 'add_depot_dropdown'), 10, 2);
+        
+        // Validate depot selection
+        add_action('woocommerce_after_checkout_validation', array($this, 'validate_depot_selection'), 10, 2);
     }
 
     /**
@@ -83,8 +89,64 @@ class GSD_Checkout {
                 $meta_data = $shipping_method->get_meta_data();
                 
                 // Check if this is a depot pickup or home delivery or express delivery
-                if (strpos($rate_id, ':depot:') !== false || $method_id === 'gsd_depot_pbt' || $method_id === 'gsd_depot_mainfreight') {
-                    // Depot pickup
+                if ($method_id === 'gsd_depot_pbt' || $method_id === 'gsd_depot_mainfreight') {
+                    // New depot pickup methods - get selected depot from POST
+                    $courier_slug = '';
+                    $courier_name = '';
+                    $depots = array();
+                    
+                    foreach ($meta_data as $meta) {
+                        $data = $meta->get_data();
+                        if ($data['key'] === 'courier_slug') {
+                            $courier_slug = $data['value'];
+                        } elseif ($data['key'] === 'courier_name') {
+                            $courier_name = $data['value'];
+                        } elseif ($data['key'] === 'depots') {
+                            $depots = $data['value'];
+                        }
+                    }
+                    
+                    // Validate courier slug before using in POST key
+                    $allowed_couriers = array('main_freight', 'pbt');
+                    if (!in_array($courier_slug, $allowed_couriers, true)) {
+                        continue;
+                    }
+                    
+                    // Get selected depot from POST data
+                    $selected_depot_id = isset($_POST['gsd_depot_' . $courier_slug]) ? sanitize_text_field($_POST['gsd_depot_' . $courier_slug]) : '';
+                    $selected_depot_name = '';
+                    
+                    // Find and validate depot from available depots
+                    if (!empty($selected_depot_id) && !empty($depots) && is_array($depots)) {
+                        $depot_found = false;
+                        foreach ($depots as $depot) {
+                            if (isset($depot['id']) && $depot['id'] === $selected_depot_id) {
+                                $selected_depot_name = $depot['name'];
+                                $depot_found = true;
+                                break;
+                            }
+                        }
+                        
+                        // If depot ID was submitted but not found in available depots, ignore it
+                        if (!$depot_found) {
+                            $selected_depot_id = '';
+                            $selected_depot_name = '';
+                        }
+                    }
+                    
+                    // Save to session for next page load
+                    WC()->session->set('gsd_selected_depot_' . $courier_slug, $selected_depot_id);
+                    
+                    if (!empty($selected_depot_id) && !empty($selected_depot_name)) {
+                        $order->update_meta_data('_gsd_depot', $selected_depot_id);
+                        $order->update_meta_data('_gsd_depot_name', $selected_depot_name);
+                        $order->update_meta_data('_gsd_courier', $courier_name);
+                    }
+                    
+                    $order->update_meta_data('_gsd_home_delivery', 'no');
+                    $order->update_meta_data('_gsd_express_delivery', 'no');
+                } elseif (strpos($rate_id, ':depot:') !== false) {
+                    // Old depot pickup format
                     foreach ($meta_data as $meta) {
                         $data = $meta->get_data();
                         if ($data['key'] === 'depot_id') {
@@ -315,5 +377,96 @@ class GSD_Checkout {
             }
         }
         return false;
+    }
+
+    /**
+     * Add depot dropdown after shipping rate
+     *
+     * @param WC_Shipping_Rate $method The shipping method
+     * @param int $index The index of the shipping method
+     */
+    public function add_depot_dropdown($method, $index) {
+        $method_id = $method->get_method_id();
+        
+        // Only add dropdown for our depot pickup methods
+        if ($method_id !== 'gsd_depot_mainfreight' && $method_id !== 'gsd_depot_pbt') {
+            return;
+        }
+        
+        // Get depot information from meta data
+        $meta_data = $method->get_meta_data();
+        $depots = array();
+        $courier_slug = '';
+        
+        foreach ($meta_data as $key => $value) {
+            if ($key === 'depots') {
+                $depots = $value;
+            }
+            if ($key === 'courier_slug') {
+                $courier_slug = $value;
+            }
+        }
+        
+        if (empty($depots) || !is_array($depots)) {
+            return;
+        }
+        
+        // Get selected depot from session
+        $selected_depot = WC()->session->get('gsd_selected_depot_' . $courier_slug, '');
+        
+        ?>
+        <div class="gsd-depot-dropdown-wrapper" data-method-id="<?php echo esc_attr($method->get_id()); ?>">
+            <label for="gsd_depot_<?php echo esc_attr($courier_slug); ?>">
+                <?php esc_html_e('Select depot location:', 'garden-sheds-delivery'); ?>
+            </label>
+            <select name="gsd_depot_<?php echo esc_attr($courier_slug); ?>" 
+                    id="gsd_depot_<?php echo esc_attr($courier_slug); ?>" 
+                    class="gsd-depot-select" 
+                    data-courier="<?php echo esc_attr($courier_slug); ?>">
+                <option value=""><?php esc_html_e('-- Select a depot --', 'garden-sheds-delivery'); ?></option>
+                <?php foreach ($depots as $depot) : ?>
+                    <?php if (isset($depot['id']) && isset($depot['name'])) : ?>
+                        <option value="<?php echo esc_attr($depot['id']); ?>" 
+                                data-name="<?php echo esc_attr($depot['name']); ?>"
+                                <?php selected($selected_depot, $depot['id']); ?>>
+                            <?php echo esc_html($depot['name']); ?>
+                        </option>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php
+    }
+
+    /**
+     * Validate depot selection during checkout
+     *
+     * @param array $data Posted data
+     * @param WP_Error $errors Errors object
+     */
+    public function validate_depot_selection($data, $errors) {
+        // Get chosen shipping methods
+        $chosen_methods = WC()->session->get('chosen_shipping_methods');
+        
+        if (empty($chosen_methods)) {
+            return;
+        }
+        
+        foreach ($chosen_methods as $chosen_method) {
+            // Check if this is a depot pickup method
+            if (strpos($chosen_method, 'gsd_depot_mainfreight') !== false) {
+                $selected_depot = isset($_POST['gsd_depot_main_freight']) ? sanitize_text_field($_POST['gsd_depot_main_freight']) : '';
+                
+                if (empty($selected_depot)) {
+                    $errors->add('shipping', __('Please select a Mainfreight depot location.', 'garden-sheds-delivery'));
+                }
+            } elseif (strpos($chosen_method, 'gsd_depot_pbt') !== false) {
+                $selected_depot = isset($_POST['gsd_depot_pbt']) ? sanitize_text_field($_POST['gsd_depot_pbt']) : '';
+                
+                if (empty($selected_depot)) {
+                    $errors->add('shipping', __('Please select a PBT depot location.', 'garden-sheds-delivery'));
+                }
+            }
+        }
     }
 }
