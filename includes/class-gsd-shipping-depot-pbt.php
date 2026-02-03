@@ -90,25 +90,19 @@ class GSD_Shipping_Depot_PBT extends WC_Shipping_Method {
         $depots = GSD_Courier::get_depots('pbt');
         
         if (!empty($depots) && is_array($depots)) {
-            foreach ($depots as $depot) {
-                // Ensure depot has required fields
-                if (!isset($depot['id']) || !isset($depot['name'])) {
-                    continue;
-                }
-                
-                $rate = array(
-                    'id' => $this->get_rate_id() . ':' . $depot['id'],
-                    'label' => sprintf(__('Pickup from %s', 'garden-sheds-delivery'), $depot['name']),
-                    'cost' => 0, // Depot pickup is free
-                    'meta_data' => array(
-                        'depot_id' => $depot['id'],
-                        'depot_name' => $depot['name'],
-                        'courier_name' => $courier['name'],
-                        'delivery_type' => 'depot'
-                    ),
-                );
-                $this->add_rate($rate);
-            }
+            // Add a single rate for depot pickup with all depots in meta data
+            $rate = array(
+                'id' => $this->get_rate_id(),
+                'label' => __('Pickup from PBT Depot', 'garden-sheds-delivery'),
+                'cost' => 0, // Depot pickup is free
+                'meta_data' => array(
+                    'depots' => $depots,
+                    'courier_name' => $courier['name'],
+                    'courier_slug' => 'pbt',
+                    'delivery_type' => 'depot'
+                ),
+            );
+            $this->add_rate($rate);
         }
     }
 

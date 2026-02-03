@@ -376,6 +376,9 @@ class GSD_Admin {
         }
 
         GSD_Courier::update_couriers($couriers);
+        
+        // Clear WooCommerce shipping cache to ensure new depot settings are reflected
+        $this->clear_shipping_cache();
     }
 
     /**
@@ -408,6 +411,9 @@ class GSD_Admin {
             ? sanitize_text_field($_POST['gsd_default_express_delivery_cost']) 
             : '15';
         update_option('gsd_default_express_delivery_cost', $express_cost);
+        
+        // Clear WooCommerce shipping cache to ensure new settings are reflected
+        $this->clear_shipping_cache();
     }
 
     /**
@@ -526,5 +532,28 @@ class GSD_Admin {
             </div>
         </div>
         <?php
+    }
+    
+    /**
+     * Clear WooCommerce shipping cache
+     * 
+     * This ensures that when admin settings are changed, the shipping options
+     * are recalculated even if items are already in the cart
+     */
+    private function clear_shipping_cache() {
+        // Clear WooCommerce transients related to shipping
+        global $wpdb;
+        
+        // Delete all shipping transients
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_shipping_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_shipping_%'");
+        
+        // Clear WooCommerce cache
+        if (function_exists('wc_delete_shop_order_transients')) {
+            wc_delete_shop_order_transients();
+        }
+        
+        // Clear object cache
+        wp_cache_flush();
     }
 }
