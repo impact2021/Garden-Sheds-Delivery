@@ -864,28 +864,34 @@ class GSD_Admin {
             wp_send_json_error(array('message' => __('Permission denied', 'garden-sheds-delivery')));
         }
         
-        $products = isset($_POST['products']) ? $_POST['products'] : array();
+        $products = isset($_POST['products']) ? (array) $_POST['products'] : array();
         
-        if (!is_array($products)) {
+        if (empty($products)) {
             wp_send_json_error(array('message' => __('Invalid data', 'garden-sheds-delivery')));
         }
         
         foreach ($products as $product_data) {
-            $product_id = isset($product_data['product_id']) ? intval($product_data['product_id']) : 0;
-            
-            if (!$product_id) {
+            // Ensure product_data is an array
+            if (!is_array($product_data)) {
                 continue;
             }
             
-            // Save home delivery setting
+            // Sanitize and validate product ID
+            $product_id = isset($product_data['product_id']) ? intval($product_data['product_id']) : 0;
+            
+            if (!$product_id || get_post_type($product_id) !== 'product') {
+                continue;
+            }
+            
+            // Save home delivery setting (only 'yes' or 'no')
             $home_delivery = !empty($product_data['home_delivery']) ? 'yes' : 'no';
             update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
             
-            // Save express delivery setting
+            // Save express delivery setting (only 'yes' or 'no')
             $express_delivery = !empty($product_data['express_delivery']) ? 'yes' : 'no';
             update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
             
-            // Save contact for delivery setting
+            // Save contact for delivery setting (only 'yes' or 'no')
             $contact_delivery = !empty($product_data['contact_delivery']) ? 'yes' : 'no';
             update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
         }
