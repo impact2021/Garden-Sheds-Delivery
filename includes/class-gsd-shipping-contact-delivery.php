@@ -20,7 +20,7 @@ class GSD_Shipping_Contact_Delivery extends WC_Shipping_Method {
     public function __construct($instance_id = 0) {
         $this->id = 'gsd_contact_delivery';
         $this->instance_id = absint($instance_id);
-        $this->method_title = __('Maybe We Can Arrange Home Delivery', 'garden-sheds-delivery');
+        $this->method_title = __('Home dleivery may be possible - please contact us.', 'garden-sheds-delivery');
         $this->method_description = __('Contact us to arrange possible home delivery', 'garden-sheds-delivery');
         $this->supports = array(
             'shipping-zones',
@@ -58,7 +58,7 @@ class GSD_Shipping_Contact_Delivery extends WC_Shipping_Method {
                 'title' => __('Method Title', 'garden-sheds-delivery'),
                 'type' => 'text',
                 'description' => __('This controls the title which the user sees during checkout.', 'garden-sheds-delivery'),
-                'default' => __('Maybe We Can Arrange Home Delivery', 'garden-sheds-delivery'),
+                'default' => __('Home dleivery may be possible - please contact us.', 'garden-sheds-delivery'),
                 'desc_tip' => true,
             ),
         );
