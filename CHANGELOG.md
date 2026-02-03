@@ -2,6 +2,51 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.5.2] - 2026-02-03
+
+### Added
+- **Expandable Product Table in Admin**: Category table on settings page now expandable to show and manage individual products
+  - Click arrow icon next to category name to expand and see all products in that category
+  - Configure shipping options (Home Delivery, Small Items, Contact for Delivery) for individual products
+  - Products load via AJAX for better performance
+  - Separate "Save Product Settings" button for each category
+  - Product names link to edit page for quick access
+  - Visual loading states and smooth animations
+
+### Changed
+- Admin settings page table now includes expand/collapse functionality
+- Product-level shipping settings can now be managed from main settings page
+- Category-level settings still act as master control (category must be enabled for products to show option)
+
+### Technical
+- Added AJAX endpoints: `ajax_get_category_products()` and `ajax_save_product_shipping()`
+- Modified: `includes/class-gsd-admin.php` - Added expandable table with product management
+- Modified: `garden-sheds-delivery.php` - Updated version to 1.5.2
+
+## [1.5.1] - 2026-02-03
+
+### Added
+- **GST Breakdown Display**: Home delivery costs now show GST amount in brackets
+  - Format: "$6,371.50 (includes $831.07 GST)"
+  - Applies to order details page, emails, and admin order pages
+  - GST is calculated at 10% (Australian standard rate)
+- **Depot Management Enhancements**: Improved depot location management
+  - Added "Remove" button for depot locations with trash icon
+  - Depots are now fully editable (add/remove/rename)
+  - Ensured all 27 Mainfreight depots are created by default
+  - Default depots are automatically created/updated on plugin load if missing
+
+### Changed
+- Updated depot creation logic to ensure Mainfreight depots are always present
+- Improved default data creation to merge with existing data rather than skipping
+
+### Technical
+- Modified: `includes/class-gsd-order.php` - Added `format_price_with_gst()` method for GST breakdown display
+- Modified: `includes/class-gsd-admin.php` - Added remove depot functionality with confirmation dialog
+- Modified: `garden-sheds-delivery.php` - Enhanced `gsd_create_default_data()` to check and update depot lists
+- Modified: `garden-sheds-delivery.php` - Added `gsd_create_default_data()` call on plugin init
+- Modified: `garden-sheds-delivery.php` - Updated version to 1.5.1
+
 ## [1.3.3] - 2026-02-02
 
 ### Fixed

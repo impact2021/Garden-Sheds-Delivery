@@ -3,7 +3,7 @@
  * Plugin Name: Garden Sheds Delivery
  * Plugin URI: https://github.com/impact2021/Garden-Sheds-Delivery
  * Description: Manage courier delivery options for garden sheds with multiple depot locations
- * Version: 1.5.0
+ * Version: 1.5.2
  * Author: Impact 2021
  * Author URI: https://github.com/impact2021
  * Text Domain: garden-sheds-delivery
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('GSD_VERSION', '1.5.0');
+define('GSD_VERSION', '1.5.2');
 define('GSD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('GSD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GSD_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -66,6 +66,9 @@ function gsd_init() {
     if (is_admin()) {
         GSD_Admin::instance();
     }
+    
+    // Ensure default depot data exists
+    gsd_create_default_data();
     
     // Register shipping method
     add_filter('woocommerce_shipping_methods', 'gsd_register_shipping_method');
@@ -126,10 +129,18 @@ register_deactivation_hook(__FILE__, 'gsd_deactivate');
 function gsd_create_default_data() {
     // Check if data already exists
     $existing_couriers = get_option('gsd_courier_companies', array());
-    if (!empty($existing_couriers)) {
-        return;
+    
+    // If data exists, check if Main Freight has the full depot list
+    if (!empty($existing_couriers) && isset($existing_couriers['main_freight'])) {
+        $mf_depots = isset($existing_couriers['main_freight']['depots']) ? $existing_couriers['main_freight']['depots'] : array();
+        
+        // If Main Freight has at least 27 depots, data is already complete
+        if (count($mf_depots) >= 27) {
+            return;
+        }
     }
-
+    
+    // Create or update with full default data
     $default_data = array(
         'main_freight' => array(
             'name' => 'Main Freight',
@@ -176,5 +187,16 @@ function gsd_create_default_data() {
         )
     );
 
-    update_option('gsd_courier_companies', $default_data);
+    // Merge with existing data to preserve any custom couriers
+    if (!empty($existing_couriers)) {
+        // Keep existing PBT if it exists, otherwise use default
+        if (!isset($existing_couriers['pbt'])) {
+            $existing_couriers['pbt'] = $default_data['pbt'];
+        }
+        // Always update Main Freight to ensure all depots are present
+        $existing_couriers['main_freight'] = $default_data['main_freight'];
+        update_option('gsd_courier_companies', $existing_couriers);
+    } else {
+        update_option('gsd_courier_companies', $default_data);
+    }
 }
