@@ -68,8 +68,14 @@ class GSD_Checkout {
         foreach ($shipping_methods as $shipping_method) {
             $method_id = $shipping_method->get_method_id();
             
-            // Check if this is our shipping method
-            if ($method_id === 'garden_sheds_delivery') {
+            // Check if this is one of our shipping methods (old or new)
+            if ($method_id === 'garden_sheds_delivery' || 
+                $method_id === 'gsd_home_delivery' || 
+                $method_id === 'gsd_depot_pbt' || 
+                $method_id === 'gsd_depot_mainfreight' || 
+                $method_id === 'gsd_small_items' || 
+                $method_id === 'gsd_contact_delivery') {
+                
                 $instance_id = $shipping_method->get_instance_id();
                 $rate_id = $shipping_method->get_id(); // Full rate ID including any suffix
                 
@@ -77,7 +83,7 @@ class GSD_Checkout {
                 $meta_data = $shipping_method->get_meta_data();
                 
                 // Check if this is a depot pickup or home delivery or express delivery
-                if (strpos($rate_id, ':depot:') !== false) {
+                if (strpos($rate_id, ':depot:') !== false || $method_id === 'gsd_depot_pbt' || $method_id === 'gsd_depot_mainfreight') {
                     // Depot pickup
                     foreach ($meta_data as $meta) {
                         $data = $meta->get_data();
@@ -91,7 +97,7 @@ class GSD_Checkout {
                     }
                     $order->update_meta_data('_gsd_home_delivery', 'no');
                     $order->update_meta_data('_gsd_express_delivery', 'no');
-                } elseif (strpos($rate_id, ':home_delivery') !== false) {
+                } elseif (strpos($rate_id, ':home_delivery') !== false || $method_id === 'gsd_home_delivery') {
                     // Home delivery
                     $order->update_meta_data('_gsd_home_delivery', 'yes');
                     $order->update_meta_data('_gsd_express_delivery', 'no');
@@ -101,7 +107,7 @@ class GSD_Checkout {
                             $order->update_meta_data('_gsd_home_delivery_price', $data['value']);
                         }
                     }
-                } elseif (strpos($rate_id, ':express_delivery') !== false) {
+                } elseif (strpos($rate_id, ':express_delivery') !== false || $method_id === 'gsd_small_items') {
                     // Small item delivery
                     $order->update_meta_data('_gsd_home_delivery', 'no');
                     $order->update_meta_data('_gsd_express_delivery', 'yes');
@@ -111,6 +117,11 @@ class GSD_Checkout {
                             $order->update_meta_data('_gsd_express_delivery_price', $data['value']);
                         }
                     }
+                } elseif ($method_id === 'gsd_contact_delivery') {
+                    // Contact for delivery
+                    $order->update_meta_data('_gsd_contact_delivery', 'yes');
+                    $order->update_meta_data('_gsd_home_delivery', 'no');
+                    $order->update_meta_data('_gsd_express_delivery', 'no');
                 }
             }
         }
@@ -126,20 +137,27 @@ class GSD_Checkout {
      * @return string Modified label
      */
     public function customize_shipping_label($label, $method) {
-        // Only customize our shipping method
-        if ($method->get_method_id() !== 'garden_sheds_delivery') {
+        $method_id = $method->get_method_id();
+        
+        // Only customize our shipping methods
+        if ($method_id !== 'garden_sheds_delivery' && 
+            $method_id !== 'gsd_home_delivery' && 
+            $method_id !== 'gsd_depot_pbt' && 
+            $method_id !== 'gsd_depot_mainfreight' && 
+            $method_id !== 'gsd_small_items' && 
+            $method_id !== 'gsd_contact_delivery') {
             return $label;
         }
 
-        $method_id = $method->get_id();
+        $rate_id = $method->get_id();
         
         // Check if this is home delivery
-        if (strpos($method_id, ':home_delivery') !== false) {
+        if (strpos($rate_id, ':home_delivery') !== false || $method_id === 'gsd_home_delivery') {
             $label = $this->build_delivery_label(__('Home Delivery', 'garden-sheds-delivery'), $method);
-        } elseif (strpos($method_id, ':express_delivery') !== false) {
+        } elseif (strpos($rate_id, ':express_delivery') !== false || $method_id === 'gsd_small_items') {
             // Check if this is express/small item delivery
             $label = $this->build_delivery_label(__('Small Item Delivery', 'garden-sheds-delivery'), $method);
-        } elseif (strpos($method_id, ':depot:') !== false) {
+        } elseif (strpos($rate_id, ':depot:') !== false || $method_id === 'gsd_depot_pbt' || $method_id === 'gsd_depot_mainfreight') {
             // For depot pickup, just show the depot name
             $label = $method->get_label();
         }
@@ -212,8 +230,9 @@ class GSD_Checkout {
 
         // Check each chosen shipping method
         foreach ($chosen_methods as $chosen_method) {
-            // Check if this is our shipping method with home delivery
-            if (strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':home_delivery') !== false) {
+            // Check if this is home delivery (old or new method)
+            if ((strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':home_delivery') !== false) ||
+                strpos($chosen_method, 'gsd_home_delivery') !== false) {
                 // Validate that products in package actually support home delivery
                 if ($this->package_has_home_delivery($package)) {
                     $home_delivery_price = $this->get_delivery_price_from_package($package, 'home');
@@ -224,8 +243,9 @@ class GSD_Checkout {
                 }
                 break;
             }
-            // Check if this is our shipping method with small item delivery
-            elseif (strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':express_delivery') !== false) {
+            // Check if this is small item delivery (old or new method)
+            elseif ((strpos($chosen_method, 'garden_sheds_delivery') !== false && strpos($chosen_method, ':express_delivery') !== false) ||
+                    strpos($chosen_method, 'gsd_small_items') !== false) {
                 // Validate that products in package actually support small item delivery
                 if ($this->package_has_express_delivery($package)) {
                     $express_delivery_price = $this->get_delivery_price_from_package($package, 'express');
