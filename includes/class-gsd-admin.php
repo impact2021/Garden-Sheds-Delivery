@@ -479,6 +479,24 @@ class GSD_Admin {
                     checkbox[0].indeterminate = false;
                 }
             });
+            
+            // Handle product checkbox changes - update category checkbox state when product checkboxes are clicked
+            $(document).on('change', '.gsd-product-home-delivery, .gsd-product-express-delivery, .gsd-product-contact-delivery', function() {
+                var checkbox = $(this);
+                var productRow = checkbox.closest('.gsd-product-row');
+                var productsContainer = productRow.closest('.gsd-products-container');
+                var productsRowDiv = productsContainer.closest('.gsd-products-row');
+                
+                // Extract category ID from the products row ID (format: gsd-products-{categoryId})
+                var productsRowId = productsRowDiv.attr('id');
+                if (!productsRowId) {
+                    return;
+                }
+                var categoryId = productsRowId.replace('gsd-products-', '');
+                
+                // Update the category checkbox state based on all product checkboxes
+                updateCategoryCheckboxStates(categoryId);
+            });
         });
         </script>
         <?php
