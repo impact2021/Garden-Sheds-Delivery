@@ -182,11 +182,12 @@ function gsd_create_default_data() {
         // Always update Main Freight to ensure all depots are present
         $existing_couriers['main_freight'] = $default_data['main_freight'];
         
-        // Update PBT to ensure it's disabled by default (preserving if already exists)
+        // Update PBT - add if missing, otherwise preserve existing settings
         if (!isset($existing_couriers['pbt'])) {
+            // Add PBT with disabled default if it doesn't exist
             $existing_couriers['pbt'] = $default_data['pbt'];
         } else {
-            // Update enabled status to false if not already set
+            // PBT exists - set enabled to false only if the key is missing (preserve user's choice)
             if (!isset($existing_couriers['pbt']['enabled'])) {
                 $existing_couriers['pbt']['enabled'] = false;
             }
