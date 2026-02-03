@@ -293,6 +293,9 @@ class GSD_Admin {
                                         <input type="hidden" 
                                                name="couriers[<?php echo esc_attr($slug); ?>][depots][<?php echo esc_attr($index); ?>][id]" 
                                                value="<?php echo esc_attr($depot['id']); ?>" />
+                                        <button type="button" class="button gsd-remove-depot" title="<?php echo esc_attr__('Remove depot', 'garden-sheds-delivery'); ?>">
+                                            <span class="dashicons dashicons-trash"></span>
+                                        </button>
                                     </div>
                                     <?php endforeach; ?>
                                     <button type="button" class="button gsd-add-depot" data-courier="<?php echo esc_attr($slug); ?>">
@@ -323,9 +326,19 @@ class GSD_Admin {
                     '<input type="text" name="couriers[' + courier + '][depots][' + index + '][name]" ' +
                     'placeholder="<?php echo esc_js(__('Depot Name', 'garden-sheds-delivery')); ?>" class="regular-text" />' +
                     '<input type="hidden" name="couriers[' + courier + '][depots][' + index + '][id]" value="' + depotId + '" />' +
+                    '<button type="button" class="button gsd-remove-depot" title="<?php echo esc_js(__('Remove depot', 'garden-sheds-delivery')); ?>">' +
+                    '<span class="dashicons dashicons-trash"></span>' +
+                    '</button>' +
                     '</div>';
                 
                 $(this).before(html);
+            });
+
+            // Remove depot functionality
+            $(document).on('click', '.gsd-remove-depot', function() {
+                if (confirm('<?php echo esc_js(__('Are you sure you want to remove this depot?', 'garden-sheds-delivery')); ?>')) {
+                    $(this).closest('.gsd-depot-row').remove();
+                }
             });
         });
         </script>
@@ -340,6 +353,21 @@ class GSD_Admin {
             padding: 10px;
             background: #f9f9f9;
             border-radius: 3px;
+        }
+        .gsd-remove-depot {
+            padding: 4px 8px;
+            color: #a00;
+            border-color: #a00;
+        }
+        .gsd-remove-depot:hover {
+            color: #fff;
+            background: #dc3232;
+            border-color: #dc3232;
+        }
+        .gsd-remove-depot .dashicons {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
         }
         </style>
         <?php
