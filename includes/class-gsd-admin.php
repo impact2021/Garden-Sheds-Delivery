@@ -32,6 +32,8 @@ class GSD_Admin {
     public function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('wp_ajax_gsd_get_category_products', array($this, 'ajax_get_category_products'));
+        add_action('wp_ajax_gsd_save_product_shipping', array($this, 'ajax_save_product_shipping'));
     }
 
     /**
@@ -125,9 +127,10 @@ class GSD_Admin {
                 <p><?php echo esc_html__('Configure delivery options for each product category.', 'garden-sheds-delivery'); ?></p>
                 
                 <?php if (!empty($categories) && !is_wp_error($categories)) : ?>
-                <table class="wp-list-table widefat fixed striped">
+                <table class="wp-list-table widefat fixed striped gsd-category-table">
                     <thead>
                         <tr>
+                            <th style="width: 30px;"></th>
                             <th><?php echo esc_html__('Category', 'garden-sheds-delivery'); ?></th>
                             <th style="text-align: center;"><?php echo esc_html__('Home Delivery', 'garden-sheds-delivery'); ?></th>
                             <th style="text-align: center;"><?php echo esc_html__('Small Items', 'garden-sheds-delivery'); ?></th>
@@ -138,7 +141,12 @@ class GSD_Admin {
                     </thead>
                     <tbody>
                         <?php foreach ($categories as $category) : ?>
-                        <tr>
+                        <tr class="gsd-category-row" data-category-id="<?php echo esc_attr($category->term_id); ?>">
+                            <td style="text-align: center;">
+                                <button type="button" class="gsd-toggle-products button-link" data-category-id="<?php echo esc_attr($category->term_id); ?>" title="<?php echo esc_attr__('Show/hide products', 'garden-sheds-delivery'); ?>">
+                                    <span class="dashicons dashicons-arrow-right"></span>
+                                </button>
+                            </td>
                             <td><strong><?php echo esc_html($category->name); ?></strong></td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
@@ -169,6 +177,16 @@ class GSD_Admin {
                                        name="gsd_pbt_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
                                        <?php checked(in_array($category->term_id, $selected_pbt)); ?> />
+                            </td>
+                        </tr>
+                        <tr class="gsd-products-row" id="gsd-products-<?php echo esc_attr($category->term_id); ?>" style="display: none;">
+                            <td colspan="7" style="padding: 0;">
+                                <div class="gsd-products-container">
+                                    <div class="gsd-loading" style="padding: 20px; text-align: center;">
+                                        <span class="spinner is-active" style="float: none;"></span>
+                                        <?php echo esc_html__('Loading products...', 'garden-sheds-delivery'); ?>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -222,6 +240,155 @@ class GSD_Admin {
                 </p>
             </form>
         </div>
+        
+        <style>
+        .gsd-toggle-products {
+            border: none;
+            background: none;
+            padding: 0;
+            cursor: pointer;
+            color: #2271b1;
+        }
+        .gsd-toggle-products:hover {
+            color: #135e96;
+        }
+        .gsd-toggle-products .dashicons {
+            transition: transform 0.2s;
+        }
+        .gsd-toggle-products.expanded .dashicons {
+            transform: rotate(90deg);
+        }
+        .gsd-products-container {
+            background: #f9f9f9;
+            border-top: 1px solid #ddd;
+        }
+        .gsd-products-table {
+            width: 100%;
+            margin: 0;
+        }
+        .gsd-products-table th,
+        .gsd-products-table td {
+            padding: 8px;
+            text-align: left;
+        }
+        .gsd-products-table thead {
+            background: #e5e5e5;
+        }
+        .gsd-products-table tbody tr:nth-child(even) {
+            background: #fff;
+        }
+        .gsd-product-name {
+            font-weight: 500;
+        }
+        .gsd-product-save {
+            text-align: right;
+            padding: 10px 15px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+        </style>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            // Toggle product display
+            $('.gsd-toggle-products').on('click', function() {
+                var button = $(this);
+                var categoryId = button.data('category-id');
+                var productsRow = $('#gsd-products-' + categoryId);
+                var isExpanded = button.hasClass('expanded');
+                
+                if (isExpanded) {
+                    // Collapse
+                    productsRow.slideUp(200);
+                    button.removeClass('expanded');
+                } else {
+                    // Expand
+                    button.addClass('expanded');
+                    productsRow.slideDown(200);
+                    
+                    // Load products if not already loaded
+                    if (!productsRow.hasClass('loaded')) {
+                        loadCategoryProducts(categoryId);
+                    }
+                }
+            });
+            
+            // Load products via AJAX
+            function loadCategoryProducts(categoryId) {
+                var container = $('#gsd-products-' + categoryId + ' .gsd-products-container');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'gsd_get_category_products',
+                        category_id: categoryId,
+                        nonce: '<?php echo wp_create_nonce('gsd_get_category_products'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            container.html(response.data.html);
+                            $('#gsd-products-' + categoryId).addClass('loaded');
+                        } else {
+                            container.html('<div class="notice notice-error" style="margin: 10px;"><p>' + 
+                                (response.data.message || '<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>') + 
+                                '</p></div>');
+                        }
+                    },
+                    error: function() {
+                        container.html('<div class="notice notice-error" style="margin: 10px;"><p><?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?></p></div>');
+                    }
+                });
+            }
+            
+            // Save individual product settings
+            $(document).on('click', '.gsd-save-product-settings', function() {
+                var button = $(this);
+                var categoryId = button.data('category-id');
+                var container = $('#gsd-products-' + categoryId + ' .gsd-products-container');
+                var productSettings = [];
+                
+                container.find('.gsd-product-row').each(function() {
+                    var row = $(this);
+                    var productId = row.data('product-id');
+                    
+                    productSettings.push({
+                        product_id: productId,
+                        home_delivery: row.find('.gsd-product-home-delivery').is(':checked'),
+                        express_delivery: row.find('.gsd-product-express-delivery').is(':checked'),
+                        contact_delivery: row.find('.gsd-product-contact-delivery').is(':checked')
+                    });
+                });
+                
+                button.prop('disabled', true).text('<?php echo esc_js(__('Saving...', 'garden-sheds-delivery')); ?>');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'gsd_save_product_shipping',
+                        products: productSettings,
+                        nonce: '<?php echo wp_create_nonce('gsd_save_product_shipping'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            button.text('<?php echo esc_js(__('Saved!', 'garden-sheds-delivery')); ?>');
+                            setTimeout(function() {
+                                button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
+                            }, 2000);
+                        } else {
+                            alert(response.data.message || '<?php echo esc_js(__('Error saving settings', 'garden-sheds-delivery')); ?>');
+                            button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
+                        }
+                    },
+                    error: function() {
+                        alert('<?php echo esc_js(__('Error saving settings', 'garden-sheds-delivery')); ?>');
+                        button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
+                    }
+                });
+            });
+        });
+        </script>
         <?php
     }
 
@@ -596,5 +763,136 @@ class GSD_Admin {
         
         // Clear object cache
         wp_cache_flush();
+    }
+
+    /**
+     * AJAX handler to get products for a category
+     */
+    public function ajax_get_category_products() {
+        check_ajax_referer('gsd_get_category_products', 'nonce');
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => __('Permission denied', 'garden-sheds-delivery')));
+        }
+        
+        $category_id = isset($_POST['category_id']) ? intval($_POST['category_id']) : 0;
+        
+        if (!$category_id) {
+            wp_send_json_error(array('message' => __('Invalid category', 'garden-sheds-delivery')));
+        }
+        
+        // Get products in this category
+        $args = array(
+            'post_type' => 'product',
+            'posts_per_page' => -1,
+            'tax_query' => array(
+                array(
+                    'taxonomy' => 'product_cat',
+                    'field' => 'term_id',
+                    'terms' => $category_id,
+                ),
+            ),
+            'orderby' => 'title',
+            'order' => 'ASC',
+        );
+        
+        $products = get_posts($args);
+        
+        if (empty($products)) {
+            wp_send_json_success(array(
+                'html' => '<div style="padding: 15px; text-align: center; color: #666;">' . 
+                          esc_html__('No products found in this category.', 'garden-sheds-delivery') . 
+                          '</div>'
+            ));
+        }
+        
+        // Build products table HTML
+        ob_start();
+        ?>
+        <table class="gsd-products-table">
+            <thead>
+                <tr>
+                    <th><?php echo esc_html__('Product', 'garden-sheds-delivery'); ?></th>
+                    <th style="text-align: center; width: 120px;"><?php echo esc_html__('Home Delivery', 'garden-sheds-delivery'); ?></th>
+                    <th style="text-align: center; width: 120px;"><?php echo esc_html__('Small Items', 'garden-sheds-delivery'); ?></th>
+                    <th style="text-align: center; width: 150px;"><?php echo esc_html__('Contact for Delivery', 'garden-sheds-delivery'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($products as $product) : 
+                    $home_delivery = get_post_meta($product->ID, '_gsd_home_delivery_available', true) === 'yes';
+                    $express_delivery = get_post_meta($product->ID, '_gsd_express_delivery_available', true) === 'yes';
+                    $contact_delivery = get_post_meta($product->ID, '_gsd_contact_for_delivery', true) === 'yes';
+                ?>
+                <tr class="gsd-product-row" data-product-id="<?php echo esc_attr($product->ID); ?>">
+                    <td class="gsd-product-name">
+                        <a href="<?php echo esc_url(get_edit_post_link($product->ID)); ?>" target="_blank">
+                            <?php echo esc_html($product->post_title); ?>
+                        </a>
+                    </td>
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="gsd-product-home-delivery" <?php checked($home_delivery); ?> />
+                    </td>
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="gsd-product-express-delivery" <?php checked($express_delivery); ?> />
+                    </td>
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="gsd-product-contact-delivery" <?php checked($contact_delivery); ?> />
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <div class="gsd-product-save">
+            <button type="button" class="button button-primary gsd-save-product-settings" data-category-id="<?php echo esc_attr($category_id); ?>">
+                <?php echo esc_html__('Save Product Settings', 'garden-sheds-delivery'); ?>
+            </button>
+        </div>
+        <?php
+        $html = ob_get_clean();
+        
+        wp_send_json_success(array('html' => $html));
+    }
+
+    /**
+     * AJAX handler to save product shipping settings
+     */
+    public function ajax_save_product_shipping() {
+        check_ajax_referer('gsd_save_product_shipping', 'nonce');
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => __('Permission denied', 'garden-sheds-delivery')));
+        }
+        
+        $products = isset($_POST['products']) ? $_POST['products'] : array();
+        
+        if (!is_array($products)) {
+            wp_send_json_error(array('message' => __('Invalid data', 'garden-sheds-delivery')));
+        }
+        
+        foreach ($products as $product_data) {
+            $product_id = isset($product_data['product_id']) ? intval($product_data['product_id']) : 0;
+            
+            if (!$product_id) {
+                continue;
+            }
+            
+            // Save home delivery setting
+            $home_delivery = !empty($product_data['home_delivery']) ? 'yes' : 'no';
+            update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
+            
+            // Save express delivery setting
+            $express_delivery = !empty($product_data['express_delivery']) ? 'yes' : 'no';
+            update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
+            
+            // Save contact for delivery setting
+            $contact_delivery = !empty($product_data['contact_delivery']) ? 'yes' : 'no';
+            update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
+        }
+        
+        // Clear shipping cache
+        $this->clear_shipping_cache();
+        
+        wp_send_json_success(array('message' => __('Settings saved successfully', 'garden-sheds-delivery')));
     }
 }

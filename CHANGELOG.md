@@ -2,6 +2,27 @@
 
 All notable changes to the Garden Sheds Delivery plugin will be documented in this file.
 
+## [1.5.2] - 2026-02-03
+
+### Added
+- **Expandable Product Table in Admin**: Category table on settings page now expandable to show and manage individual products
+  - Click arrow icon next to category name to expand and see all products in that category
+  - Configure shipping options (Home Delivery, Small Items, Contact for Delivery) for individual products
+  - Products load via AJAX for better performance
+  - Separate "Save Product Settings" button for each category
+  - Product names link to edit page for quick access
+  - Visual loading states and smooth animations
+
+### Changed
+- Admin settings page table now includes expand/collapse functionality
+- Product-level shipping settings can now be managed from main settings page
+- Category-level settings still act as master control (category must be enabled for products to show option)
+
+### Technical
+- Added AJAX endpoints: `ajax_get_category_products()` and `ajax_save_product_shipping()`
+- Modified: `includes/class-gsd-admin.php` - Added expandable table with product management
+- Modified: `garden-sheds-delivery.php` - Updated version to 1.5.2
+
 ## [1.5.1] - 2026-02-03
 
 ### Added
