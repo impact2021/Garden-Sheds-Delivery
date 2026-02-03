@@ -343,54 +343,58 @@ class GSD_Admin {
                 });
             }
             
-            // Save individual product settings
-            $(document).on('click', '.gsd-save-product-settings', function() {
-                var button = $(this);
-                var categoryId = button.data('category-id');
-                var container = $('#gsd-products-' + categoryId + ' .gsd-products-container');
-                var productSettings = [];
+            // Auto-save individual product when checkbox changes
+            var saveTimeouts = {}; // Track timeouts per category
+            var AUTO_SAVE_DEBOUNCE_MS = 500;
+            
+            function autoSaveProductSettings(categoryId) {
+                // Clear any pending save for this category
+                if (saveTimeouts[categoryId]) {
+                    clearTimeout(saveTimeouts[categoryId]);
+                }
                 
-                container.find('.gsd-product-row').each(function() {
-                    var row = $(this);
-                    var productId = row.data('product-id');
+                // Debounce saves to avoid excessive AJAX calls
+                saveTimeouts[categoryId] = setTimeout(function() {
+                    var container = $('#gsd-products-' + categoryId + ' .gsd-products-container');
+                    var productSettings = [];
                     
-                    productSettings.push({
-                        product_id: productId,
-                        home_delivery: row.find('.gsd-product-home-delivery').is(':checked'),
-                        express_delivery: row.find('.gsd-product-express-delivery').is(':checked'),
-                        contact_delivery: row.find('.gsd-product-contact-delivery').is(':checked')
+                    container.find('.gsd-product-row').each(function() {
+                        var row = $(this);
+                        var productId = row.data('product-id');
+                        
+                        productSettings.push({
+                            product_id: productId,
+                            home_delivery: row.find('.gsd-product-home-delivery').is(':checked'),
+                            express_delivery: row.find('.gsd-product-express-delivery').is(':checked'),
+                            contact_delivery: row.find('.gsd-product-contact-delivery').is(':checked')
+                        });
                     });
-                });
-                
-                button.prop('disabled', true).text('<?php echo esc_js(__('Saving...', 'garden-sheds-delivery')); ?>');
-                
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'gsd_save_product_shipping',
-                        products: productSettings,
-                        nonce: '<?php echo wp_create_nonce('gsd_save_product_shipping'); ?>'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            button.text('<?php echo esc_js(__('Saved!', 'garden-sheds-delivery')); ?>');
-                            setTimeout(function() {
-                                button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
-                            }, 2000);
-                            // Update category checkbox states after saving
-                            updateCategoryCheckboxStates(categoryId);
-                        } else {
-                            alert(response.data.message || '<?php echo esc_js(__('Error saving settings', 'garden-sheds-delivery')); ?>');
-                            button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'gsd_save_product_shipping',
+                            products: productSettings,
+                            nonce: '<?php echo wp_create_nonce('gsd_save_product_shipping'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                // Optionally show a brief success indicator
+                                console.log('Product settings saved successfully for category ' + categoryId);
+                            } else {
+                                console.error('Error saving product settings:', response.data.message);
+                            }
+                        },
+                        error: function() {
+                            console.error('Error saving product settings');
                         }
-                    },
-                    error: function() {
-                        alert('<?php echo esc_js(__('Error saving settings', 'garden-sheds-delivery')); ?>');
-                        button.prop('disabled', false).text('<?php echo esc_js(__('Save Product Settings', 'garden-sheds-delivery')); ?>');
-                    }
-                });
-            });
+                    });
+                    
+                    // Clean up timeout reference
+                    delete saveTimeouts[categoryId];
+                }, AUTO_SAVE_DEBOUNCE_MS);
+            }
             
             // Update category checkbox states based on product states
             function updateCategoryCheckboxStates(categoryId) {
@@ -477,6 +481,9 @@ class GSD_Admin {
                     productsContainer.find(productCheckboxClass).prop('checked', isChecked);
                     // Clear indeterminate state
                     checkbox[0].indeterminate = false;
+                    
+                    // Auto-save the updated product settings
+                    autoSaveProductSettings(categoryId);
                 }
             });
             
@@ -496,6 +503,9 @@ class GSD_Admin {
                 
                 // Update the category checkbox state based on all product checkboxes
                 updateCategoryCheckboxStates(categoryId);
+                
+                // Auto-save the product settings
+                autoSaveProductSettings(categoryId);
             });
         });
         </script>
@@ -973,11 +983,6 @@ class GSD_Admin {
                 <?php endforeach; ?>
             </tbody>
         </table>
-        <div class="gsd-product-save">
-            <button type="button" class="button button-primary gsd-save-product-settings" data-category-id="<?php echo esc_attr($category_id); ?>">
-                <?php echo esc_html__('Save Product Settings', 'garden-sheds-delivery'); ?>
-            </button>
-        </div>
         <?php
         $html = ob_get_clean();
         
