@@ -33,20 +33,13 @@
 }
 
 /* Product rows styling */
-.gsd-products-row {
+.gsd-product-row {
     background-color: #f9f9f9;
 }
 
-.gsd-products-container {
-    padding: 15px;
-}
-
-.gsd-product-row {
+.gsd-product-row td {
+    padding: 8px 10px;
     border-bottom: 1px solid #ddd;
-}
-
-.gsd-product-row:last-child {
-    border-bottom: none;
 }
 
 .gsd-product-name a {
@@ -103,43 +96,6 @@
 /* Error notification */
 #gsd-autosave-error {
     background: #dc3232 !important;
-}
-
-/* Warning for indeterminate state */
-.gsd-indeterminate-warning {
-    display: none !important;
-    margin-top: 5px;
-    padding: 4px 8px;
-    background: #fff8e5;
-    border-left: 3px solid #ffb900;
-    border-radius: 3px;
-    font-size: 12px;
-    color: #666;
-    align-items: center;
-    gap: 5px;
-}
-
-.gsd-category-row.has-indeterminate .gsd-indeterminate-warning {
-    display: inline-flex !important;
-}
-
-/* Highlight category rows with mixed states */
-.gsd-category-row.has-indeterminate {
-    background-color: #fffbea !important;
-}
-
-/* Info notice for mixed states */
-.gsd-mixed-state-notice {
-    margin: 15px 0;
-    padding: 12px;
-    background: #e7f3ff;
-    border-left: 4px solid #2196F3;
-    font-size: 14px;
-}
-
-.gsd-mixed-state-notice strong {
-    display: block;
-    margin-bottom: 5px;
 }
 
 /* Responsive adjustments */
