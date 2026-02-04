@@ -663,9 +663,9 @@ class GSD_Admin {
                 
                 var testData = [{
                     product_id: 1,
-                    home_delivery: true,
-                    express_delivery: false,
-                    contact_delivery: false
+                    home_delivery: 1,
+                    express_delivery: 0,
+                    contact_delivery: 0
                 }];
                 
                 logToDebug('Test data: ' + JSON.stringify(testData), 'info');
@@ -693,38 +693,35 @@ class GSD_Admin {
                 });
             });
             
-            // Intercept all AJAX calls to log them
-            var originalAjax = $.ajax;
-            $.ajax = function(options) {
+            // Intercept GSD AJAX calls to log them (using jQuery events instead of overriding $.ajax)
+            $(document).ajaxSend(function(event, jqxhr, settings) {
                 // Only log GSD-related AJAX calls
-                if (options.data && options.data.action && options.data.action.indexOf('gsd_') === 0) {
-                    logToDebug('→ AJAX Request: ' + options.data.action, 'info');
-                    
-                    // Wrap success callback
-                    var originalSuccess = options.success;
-                    options.success = function(response) {
-                        if (response.success) {
-                            logToDebug('✓ ' + options.data.action + ' succeeded', 'success');
-                        } else {
-                            logToDebug('✗ ' + options.data.action + ' failed: ' + (response.data ? response.data.message : 'Unknown error'), 'error');
-                        }
-                        if (originalSuccess) {
-                            originalSuccess.apply(this, arguments);
-                        }
-                    };
-                    
-                    // Wrap error callback
-                    var originalError = options.error;
-                    options.error = function(xhr, status, error) {
-                        logToDebug('✗ ' + options.data.action + ' AJAX error: ' + error, 'error');
-                        if (originalError) {
-                            originalError.apply(this, arguments);
-                        }
-                    };
+                if (settings.data && typeof settings.data === 'string' && settings.data.indexOf('action=gsd_') !== -1) {
+                    var actionMatch = settings.data.match(/action=gsd_([^&]+)/);
+                    if (actionMatch) {
+                        logToDebug('→ AJAX Request: gsd_' + actionMatch[1], 'info');
+                    }
                 }
-                
-                return originalAjax.call(this, options);
-            };
+            });
+            
+            $(document).ajaxComplete(function(event, jqxhr, settings) {
+                // Only log GSD-related AJAX calls
+                if (settings.data && typeof settings.data === 'string' && settings.data.indexOf('action=gsd_') !== -1) {
+                    var actionMatch = settings.data.match(/action=gsd_([^&]+)/);
+                    if (actionMatch) {
+                        try {
+                            var response = JSON.parse(jqxhr.responseText);
+                            if (response.success) {
+                                logToDebug('✓ gsd_' + actionMatch[1] + ' succeeded', 'success');
+                            } else {
+                                logToDebug('✗ gsd_' + actionMatch[1] + ' failed: ' + (response.data ? response.data.message : 'Unknown error'), 'error');
+                            }
+                        } catch (e) {
+                            // Response is not JSON, ignore
+                        }
+                    }
+                }
+            });
             
             // Initial log
             logToDebug('Debug panel initialized', 'success');
@@ -1252,28 +1249,30 @@ class GSD_Admin {
                 continue;
             }
             
-            // Convert string 'true'/'false' to actual booleans
-            // jQuery serializes booleans as strings, so we need to handle both cases
-            $home_delivery_value = isset($product_data['home_delivery']) ? $product_data['home_delivery'] : false;
-            $express_delivery_value = isset($product_data['express_delivery']) ? $product_data['express_delivery'] : false;
-            $contact_delivery_value = isset($product_data['contact_delivery']) ? $product_data['contact_delivery'] : false;
+            // Get raw values from POST data
+            $home_raw = isset($product_data['home_delivery']) ? $product_data['home_delivery'] : false;
+            $express_raw = isset($product_data['express_delivery']) ? $product_data['express_delivery'] : false;
+            $contact_raw = isset($product_data['contact_delivery']) ? $product_data['contact_delivery'] : false;
             
-            // Convert to boolean (handles both boolean and string 'true'/'false')
-            $home_delivery_bool = filter_var($home_delivery_value, FILTER_VALIDATE_BOOLEAN);
-            $express_delivery_bool = filter_var($express_delivery_value, FILTER_VALIDATE_BOOLEAN);
-            $contact_delivery_bool = filter_var($contact_delivery_value, FILTER_VALIDATE_BOOLEAN);
+            // Convert to boolean (handles both boolean and string 'true'/'false', and integers 1/0)
+            $home_delivery_bool = filter_var($home_raw, FILTER_VALIDATE_BOOLEAN);
+            $express_delivery_bool = filter_var($express_raw, FILTER_VALIDATE_BOOLEAN);
+            $contact_delivery_bool = filter_var($contact_raw, FILTER_VALIDATE_BOOLEAN);
             
-            // Save home delivery setting (only 'yes' or 'no')
+            // Convert to 'yes' or 'no' for storage
             $home_delivery = $home_delivery_bool ? 'yes' : 'no';
-            $result1 = update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
-            
-            // Save express delivery setting (only 'yes' or 'no')
             $express_delivery = $express_delivery_bool ? 'yes' : 'no';
-            $result2 = update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
-            
-            // Save contact for delivery setting (only 'yes' or 'no')
             $contact_delivery = $contact_delivery_bool ? 'yes' : 'no';
-            $result3 = update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
+            
+            // Save settings and verify success
+            $home_saved = update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
+            $express_saved = update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
+            $contact_saved = update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
+            
+            // Log save results
+            if ($home_saved === false || $express_saved === false || $contact_saved === false) {
+                error_log("GSD: Warning - Some meta updates may have failed for product #{$product_id}");
+            }
             
             error_log("GSD: Saved product #{$product_id}: home={$home_delivery}, express={$express_delivery}, contact={$contact_delivery}");
             $saved_count++;

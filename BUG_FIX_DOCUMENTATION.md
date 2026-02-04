@@ -170,6 +170,6 @@ This fix ensures that:
 
 To prevent similar issues in the future:
 1. Always use `filter_var()` for boolean conversions from user input
-2. Send integers (1/0) instead of booleans in AJAX to avoid serialization issues
+2. When using jQuery AJAX, send integers (1/0) instead of booleans to avoid serialization issues where `false` becomes the string `'false'`. This behavior differs across frameworks - other JavaScript frameworks may handle boolean serialization differently.
 3. Add comprehensive logging to AJAX handlers during development
 4. Test both checked and unchecked states when working with checkboxes
