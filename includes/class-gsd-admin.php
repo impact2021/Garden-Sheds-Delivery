@@ -35,6 +35,7 @@ class GSD_Admin {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         add_action('wp_ajax_gsd_get_category_products', array($this, 'ajax_get_category_products'));
         add_action('wp_ajax_gsd_save_product_shipping', array($this, 'ajax_save_product_shipping'));
+        add_action('wp_ajax_gsd_update_category_products', array($this, 'ajax_update_category_products'));
         add_action('wp_ajax_gsd_inspect_product_meta', array($this, 'ajax_inspect_product_meta'));
     }
 
@@ -869,64 +870,116 @@ class GSD_Admin {
                 var categoryRow = checkbox.closest('.gsd-category-row');
                 var categoryId = categoryRow.data('category-id');
                 var productsRow = $('#gsd-products-' + categoryId);
-                
-                // Only update products if they are loaded and expanded
-                if (!productsRow.hasClass('loaded')) {
-                    return;
-                }
-                
                 var isChecked = checkbox.is(':checked');
-                var productsContainer = productsRow.find('.gsd-products-container');
                 
                 // Determine which type of checkbox this is
                 var checkboxName = checkbox.attr('name');
                 var productCheckboxClass = '';
+                var optionType = '';
                 
                 if (checkboxName && checkboxName.indexOf('gsd_home_delivery_categories') > -1) {
                     productCheckboxClass = '.gsd-product-home-delivery';
+                    optionType = 'home_delivery';
                 } else if (checkboxName && checkboxName.indexOf('gsd_express_delivery_categories') > -1) {
                     productCheckboxClass = '.gsd-product-express-delivery';
+                    optionType = 'express_delivery';
                 } else if (checkboxName && checkboxName.indexOf('gsd_contact_delivery_categories') > -1) {
                     productCheckboxClass = '.gsd-product-contact-delivery';
+                    optionType = 'contact_delivery';
                 } else if (checkboxName && checkboxName.indexOf('gsd_depot_categories') > -1) {
                     productCheckboxClass = '.gsd-product-depot';
+                    optionType = 'depot';
                 }
                 
-                if (productCheckboxClass) {
+                if (!optionType) {
+                    return;
+                }
+                
+                // Clear indeterminate state for this specific checkbox
+                checkbox[0].indeterminate = false;
+                
+                gsdDebugLog('Category checkbox changed', {
+                    categoryId: categoryId,
+                    checkboxName: checkboxName,
+                    isChecked: isChecked,
+                    optionType: optionType,
+                    productsLoaded: productsRow.hasClass('loaded')
+                });
+                
+                // If products are loaded and expanded, update them in the UI immediately
+                if (productsRow.hasClass('loaded')) {
+                    var productsContainer = productsRow.find('.gsd-products-container');
                     // Update all product checkboxes of this type
                     productsContainer.find(productCheckboxClass).prop('checked', isChecked);
-                    // Clear indeterminate state for this specific checkbox
-                    checkbox[0].indeterminate = false;
-                    
-                    gsdDebugLog('Category checkbox changed - updating products and recalculating state', {
-                        categoryId: categoryId,
-                        checkboxName: checkboxName,
-                        isChecked: isChecked
-                    });
-                    
-                    // Recalculate the category row's has-indeterminate state
-                    // This checks ALL checkboxes to see if any are still indeterminate
-                    var categoryHomeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
-                    var categoryExpressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
-                    var categoryContactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
-                    var categoryDepotCheckbox = categoryRow.find('input[name="gsd_depot_categories[]"]')[0];
-                    
-                    var hasAnyIndeterminate = (categoryHomeCheckbox && categoryHomeCheckbox.indeterminate) ||
-                                             (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
-                                             (categoryContactCheckbox && categoryContactCheckbox.indeterminate) ||
-                                             (categoryDepotCheckbox && categoryDepotCheckbox.indeterminate);
-                    
-                    gsdDebugLog('  → Updated indeterminate states', {
-                        hasAnyIndeterminate: hasAnyIndeterminate,
-                        homeIndeterminate: categoryHomeCheckbox ? categoryHomeCheckbox.indeterminate : 'N/A',
-                        expressIndeterminate: categoryExpressCheckbox ? categoryExpressCheckbox.indeterminate : 'N/A',
-                        contactIndeterminate: categoryContactCheckbox ? categoryContactCheckbox.indeterminate : 'N/A',
-                        depotIndeterminate: categoryDepotCheckbox ? categoryDepotCheckbox.indeterminate : 'N/A'
-                    });
-                    
-                    // Auto-save the updated product settings
-                    autoSaveProductSettings(categoryId);
                 }
+                
+                // Always make AJAX call to update all products in the database
+                // This ensures products are updated even if they're not currently loaded/visible
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'gsd_update_category_products',
+                        category_id: categoryId,
+                        option_type: optionType,
+                        is_checked: isChecked,
+                        nonce: '<?php echo wp_create_nonce('gsd_update_category_products'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            gsdDebugLog('Category products updated via AJAX', response.data);
+                            // Show success notification
+                            var notification = $('#gsd-autosave-notification');
+                            notification.fadeIn(200);
+                            setTimeout(function() {
+                                notification.fadeOut(200);
+                            }, 2000);
+                        } else {
+                            gsdDebugLog('Error updating category products', response.data);
+                            // Show error notification
+                            var errorNotification = $('#gsd-autosave-error');
+                            var errorMessage = response.data && response.data.message ? response.data.message : 'Unknown error';
+                            $('#gsd-error-message').text(errorMessage);
+                            errorNotification.fadeIn(200);
+                            setTimeout(function() {
+                                errorNotification.fadeOut(200);
+                            }, 4000);
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        gsdDebugLog('AJAX error updating category products', {
+                            textStatus: textStatus,
+                            errorThrown: errorThrown
+                        });
+                        // Show error notification
+                        var errorNotification = $('#gsd-autosave-error');
+                        $('#gsd-error-message').text('Network error: ' + textStatus);
+                        errorNotification.fadeIn(200);
+                        setTimeout(function() {
+                            errorNotification.fadeOut(200);
+                        }, 4000);
+                    }
+                });
+                
+                // Recalculate the category row's has-indeterminate state
+                // This checks ALL checkboxes to see if any are still indeterminate
+                var categoryHomeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
+                var categoryExpressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
+                var categoryContactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
+                var categoryDepotCheckbox = categoryRow.find('input[name="gsd_depot_categories[]"]')[0];
+                
+                var hasAnyIndeterminate = (categoryHomeCheckbox && categoryHomeCheckbox.indeterminate) ||
+                                         (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
+                                         (categoryContactCheckbox && categoryContactCheckbox.indeterminate) ||
+                                         (categoryDepotCheckbox && categoryDepotCheckbox.indeterminate);
+                
+                gsdDebugLog('  → Updated indeterminate states', {
+                    hasAnyIndeterminate: hasAnyIndeterminate,
+                    homeIndeterminate: categoryHomeCheckbox ? categoryHomeCheckbox.indeterminate : 'N/A',
+                    expressIndeterminate: categoryExpressCheckbox ? categoryExpressCheckbox.indeterminate : 'N/A',
+                    contactIndeterminate: categoryContactCheckbox ? categoryContactCheckbox.indeterminate : 'N/A',
+                    depotIndeterminate: categoryDepotCheckbox ? categoryDepotCheckbox.indeterminate : 'N/A'
+                });
             });
             
             // Handle product checkbox changes - update category checkbox state when product checkboxes are clicked
@@ -1690,5 +1743,102 @@ class GSD_Admin {
                 'errors' => $errors
             ));
         }
+    }
+
+    /**
+     * AJAX handler to update all products in a category when category checkbox changes
+     */
+    public function ajax_update_category_products() {
+        check_ajax_referer('gsd_update_category_products', 'nonce');
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => __('Permission denied', 'garden-sheds-delivery')));
+            return;
+        }
+        
+        $category_id = isset($_POST['category_id']) ? intval($_POST['category_id']) : 0;
+        $option_type = isset($_POST['option_type']) ? sanitize_text_field($_POST['option_type']) : '';
+        $is_checked = isset($_POST['is_checked']) ? filter_var($_POST['is_checked'], FILTER_VALIDATE_BOOLEAN) : false;
+        
+        if (!$category_id || !$option_type) {
+            wp_send_json_error(array('message' => __('Invalid parameters', 'garden-sheds-delivery')));
+            return;
+        }
+        
+        // Get all products in this category
+        $args = array(
+            'post_type' => 'product',
+            'posts_per_page' => -1,
+            'tax_query' => array(
+                array(
+                    'taxonomy' => 'product_cat',
+                    'field' => 'term_id',
+                    'terms' => $category_id,
+                ),
+            ),
+            'fields' => 'ids',
+        );
+        
+        $product_ids = get_posts($args);
+        
+        if (empty($product_ids)) {
+            wp_send_json_success(array(
+                'message' => __('No products in this category', 'garden-sheds-delivery'),
+                'updated_count' => 0
+            ));
+            return;
+        }
+        
+        $updated_count = 0;
+        
+        // Update each product based on the option type
+        foreach ($product_ids as $product_id) {
+            $value = $is_checked ? 'yes' : 'no';
+            
+            switch ($option_type) {
+                case 'home_delivery':
+                    update_post_meta($product_id, '_gsd_home_delivery_available', $value);
+                    $updated_count++;
+                    break;
+                    
+                case 'express_delivery':
+                    update_post_meta($product_id, '_gsd_express_delivery_available', $value);
+                    $updated_count++;
+                    break;
+                    
+                case 'contact_delivery':
+                    update_post_meta($product_id, '_gsd_contact_for_delivery', $value);
+                    $updated_count++;
+                    break;
+                    
+                case 'depot':
+                    if ($is_checked) {
+                        // Set to main_freight if checked
+                        $current_courier = get_post_meta($product_id, '_gsd_courier', true);
+                        if (empty($current_courier) || !in_array($current_courier, array('main_freight', 'pbt'))) {
+                            update_post_meta($product_id, '_gsd_courier', 'main_freight');
+                        }
+                    } else {
+                        // Clear courier if unchecked
+                        $current_courier = get_post_meta($product_id, '_gsd_courier', true);
+                        if (in_array($current_courier, array('main_freight', 'pbt'))) {
+                            update_post_meta($product_id, '_gsd_courier', '');
+                        }
+                    }
+                    $updated_count++;
+                    break;
+            }
+        }
+        
+        // Clear shipping cache
+        $this->clear_shipping_cache();
+        
+        wp_send_json_success(array(
+            'message' => sprintf(
+                _n('Updated %d product', 'Updated %d products', $updated_count, 'garden-sheds-delivery'),
+                $updated_count
+            ),
+            'updated_count' => $updated_count
+        ));
     }
 }
