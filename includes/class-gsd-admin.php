@@ -1318,7 +1318,8 @@ class GSD_Admin {
                 continue;
             }
             
-            if (get_post_type($product_id) !== 'product') {
+            $post_type = get_post_type($product_id);
+            if (!in_array($post_type, array('product', 'product_variation'), true)) {
                 $errors[] = sprintf(__('Product ID %d is not a valid product', 'garden-sheds-delivery'), $product_id);
                 continue;
             }
