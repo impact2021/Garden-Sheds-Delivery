@@ -182,9 +182,19 @@ class GSD_Admin {
             }
         }
         
-        // Calculate indeterminate states
+        // Calculate indeterminate states and actual checked states based on products
         $debug_info = array(); // For debug output
+        $category_checked_states = array(); // Track actual checked state per category
+        
         foreach ($categories as $category) {
+            // Initialize checked states for this category
+            $category_checked_states[$category->term_id] = array(
+                'home_delivery' => false,
+                'express_delivery' => false,
+                'contact_delivery' => false,
+                'depot' => false,
+            );
+            
             if (!isset($products_by_category[$category->term_id])) {
                 continue;
             }
@@ -235,11 +245,16 @@ class GSD_Admin {
                     $indeterminate_states[$category->term_id][$option] = true;
                 }
                 
+                // Category checkbox should be checked if ALL products are checked
+                $all_checked = ($checked_count === count($category_products) && $checked_count > 0);
+                $category_checked_states[$category->term_id][$option] = $all_checked;
+                
                 $category_debug['options'][$option] = array(
                     'meta_key' => $meta_key,
                     'checked_count' => $checked_count,
                     'total_count' => count($category_products),
                     'is_indeterminate' => $is_indeterminate,
+                    'all_checked' => $all_checked,
                     'products' => $product_details
                 );
             }
@@ -290,7 +305,15 @@ class GSD_Admin {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($categories as $category) : ?>
+                        <?php foreach ($categories as $category) : 
+                            // Get calculated checked states for this category
+                            $cat_checked = isset($category_checked_states[$category->term_id]) ? $category_checked_states[$category->term_id] : array(
+                                'home_delivery' => false,
+                                'express_delivery' => false,
+                                'contact_delivery' => false,
+                                'depot' => false,
+                            );
+                        ?>
                         <tr class="gsd-category-row" data-category-id="<?php echo esc_attr($category->term_id); ?>">
                             <td style="text-align: center;">
                                 <button type="button" class="gsd-toggle-products button-link" data-category-id="<?php echo esc_attr($category->term_id); ?>" title="<?php echo esc_attr__('Show/hide products', 'garden-sheds-delivery'); ?>">
@@ -304,25 +327,25 @@ class GSD_Admin {
                                 <input type="checkbox" 
                                        name="gsd_home_delivery_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
-                                       <?php checked(in_array($category->term_id, $selected_home_delivery)); ?> />
+                                       <?php checked($cat_checked['home_delivery']); ?> />
                             </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
                                        name="gsd_express_delivery_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
-                                       <?php checked(in_array($category->term_id, $selected_express_delivery)); ?> />
+                                       <?php checked($cat_checked['express_delivery']); ?> />
                             </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
                                        name="gsd_contact_delivery_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
-                                       <?php checked(in_array($category->term_id, $selected_contact_delivery)); ?> />
+                                       <?php checked($cat_checked['contact_delivery']); ?> />
                             </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
                                        name="gsd_depot_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
-                                       <?php checked(in_array($category->term_id, $selected_depot_merged)); ?> />
+                                       <?php checked($cat_checked['depot']); ?> />
                             </td>
                         </tr>
                         <?php endforeach; ?>
