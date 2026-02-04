@@ -1355,8 +1355,9 @@ class GSD_Admin {
             $express_delivery = $express_delivery_bool ? 'yes' : 'no';
             $contact_delivery = $contact_delivery_bool ? 'yes' : 'no';
             
-            // Save contact for delivery setting (only 'yes' or 'no')
-            $contact_delivery = !empty($product_data['contact_delivery']) ? 'yes' : 'no';
+            // Save all three delivery settings
+            update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
+            update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
             update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
             
             // Note: update_post_meta returns false for errors OR when value is unchanged.
