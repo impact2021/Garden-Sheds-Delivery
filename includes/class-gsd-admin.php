@@ -122,6 +122,7 @@ class GSD_Admin {
         $selected_contact_delivery = get_option('gsd_contact_delivery_categories', array());
         $selected_main_freight = get_option('gsd_main_freight_categories', array());
         $selected_pbt = get_option('gsd_pbt_categories', array());
+        $selected_depot = get_option('gsd_depot_categories', array());
         
         // Ensure all selected values are arrays
         $selected_home_delivery = is_array($selected_home_delivery) ? $selected_home_delivery : array();
@@ -129,6 +130,10 @@ class GSD_Admin {
         $selected_contact_delivery = is_array($selected_contact_delivery) ? $selected_contact_delivery : array();
         $selected_main_freight = is_array($selected_main_freight) ? $selected_main_freight : array();
         $selected_pbt = is_array($selected_pbt) ? $selected_pbt : array();
+        $selected_depot = is_array($selected_depot) ? $selected_depot : array();
+        
+        // Merge legacy main_freight and pbt into depot for backwards compatibility display
+        $selected_depot_merged = array_unique(array_merge($selected_depot, $selected_main_freight, $selected_pbt));
         
         $default_cost = get_option('gsd_default_home_delivery_cost', '150');
         $default_express_cost = get_option('gsd_default_express_delivery_cost', '15');
@@ -314,10 +319,9 @@ class GSD_Admin {
                             </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
-                                       class="gsd-category-depot-checkbox"
                                        name="gsd_depot_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
-                                       <?php checked(in_array($category->term_id, $selected_main_freight) || in_array($category->term_id, $selected_pbt)); ?> />
+                                       <?php checked(in_array($category->term_id, $selected_depot_merged)); ?> />
                             </td>
                         </tr>
                         <?php endforeach; ?>
