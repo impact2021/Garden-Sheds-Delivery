@@ -107,17 +107,25 @@
 
 /* Warning for indeterminate state */
 .gsd-indeterminate-warning {
-    display: none;
-    margin-top: 10px;
-    padding: 8px 12px;
+    display: none !important;
+    margin-top: 5px;
+    padding: 4px 8px;
     background: #fff8e5;
-    border-left: 4px solid #ffb900;
-    font-size: 13px;
-    color: #333;
+    border-left: 3px solid #ffb900;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #666;
+    align-items: center;
+    gap: 5px;
 }
 
 .gsd-category-row.has-indeterminate .gsd-indeterminate-warning {
-    display: block;
+    display: inline-flex !important;
+}
+
+/* Highlight category rows with mixed states */
+.gsd-category-row.has-indeterminate {
+    background-color: #fffbea !important;
 }
 
 /* Info notice for mixed states */
