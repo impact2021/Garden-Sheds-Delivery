@@ -285,10 +285,6 @@ class GSD_Admin {
                             </td>
                             <td>
                                 <strong><?php echo esc_html($category->name); ?></strong>
-                                <div class="gsd-indeterminate-warning">
-                                    <span class="dashicons dashicons-warning" style="color: #ffb900; font-size: 16px;"></span>
-                                    <span style="font-size: 12px; color: #666;"><?php echo esc_html__('Mixed settings', 'garden-sheds-delivery'); ?></span>
-                                </div>
                             </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
@@ -319,16 +315,6 @@ class GSD_Admin {
                                        name="gsd_pbt_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
                                        <?php checked(in_array($category->term_id, $selected_pbt)); ?> />
-                            </td>
-                        </tr>
-                        <tr class="gsd-products-row" id="gsd-products-<?php echo esc_attr($category->term_id); ?>" style="display: none;">
-                            <td colspan="7" style="padding: 0;">
-                                <div class="gsd-products-container">
-                                    <div class="gsd-loading" style="padding: 20px; text-align: center;">
-                                        <span class="spinner is-active" style="float: none;"></span>
-                                        <?php echo esc_html__('Loading products...', 'garden-sheds-delivery'); ?>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -601,45 +587,44 @@ class GSD_Admin {
                     }
                 }
                 
-                // Add visual indicator if any checkbox is indeterminate
+                // Log if any checkbox is indeterminate
                 if (states.home_delivery || states.express_delivery || states.contact_delivery) {
-                    categoryRow.addClass('has-indeterminate');
                     appliedCount++;
-                    gsdDebugLog('  → Applied has-indeterminate class to category ' + categoryId, {
-                        hasClass: categoryRow.hasClass('has-indeterminate'),
-                        warningElement: categoryRow.find('.gsd-indeterminate-warning').length
-                    });
+                    gsdDebugLog('  → Applied indeterminate state to checkboxes for category ' + categoryId);
                 }
             });
             
-            gsdDebugLog('Page load complete - Applied has-indeterminate to ' + appliedCount + ' categories');
+            gsdDebugLog('Page load complete - Applied indeterminate to ' + appliedCount + ' categories');
             
             // Toggle product display
             $('.gsd-toggle-products').on('click', function() {
                 var button = $(this);
                 var categoryId = button.data('category-id');
-                var productsRow = $('#gsd-products-' + categoryId);
+                var categoryRow = button.closest('.gsd-category-row');
                 var isExpanded = button.hasClass('expanded');
+                var isLoaded = categoryRow.data('loaded');
                 
                 if (isExpanded) {
-                    // Collapse
-                    productsRow.slideUp(200);
+                    // Collapse - hide all product rows for this category
+                    $('.gsd-product-row[data-category-id="' + categoryId + '"]').hide();
                     button.removeClass('expanded');
                 } else {
                     // Expand
                     button.addClass('expanded');
-                    productsRow.slideDown(200);
                     
                     // Load products if not already loaded
-                    if (!productsRow.hasClass('loaded')) {
+                    if (!isLoaded) {
                         loadCategoryProducts(categoryId);
+                    } else {
+                        // Just show the existing product rows
+                        $('.gsd-product-row[data-category-id="' + categoryId + '"]').show();
                     }
                 }
             });
             
             // Load products via AJAX
             function loadCategoryProducts(categoryId) {
-                var container = $('#gsd-products-' + categoryId + ' .gsd-products-container');
+                var categoryRow = $('.gsd-category-row[data-category-id="' + categoryId + '"]');
                 
                 $.ajax({
                     url: ajaxurl,
@@ -651,18 +636,17 @@ class GSD_Admin {
                     },
                     success: function(response) {
                         if (response.success) {
-                            container.html(response.data.html);
-                            $('#gsd-products-' + categoryId).addClass('loaded');
+                            // Insert product rows directly after the category row
+                            $(response.data.html).insertAfter(categoryRow);
+                            categoryRow.data('loaded', true);
                             // Update category checkbox states based on loaded products
                             updateCategoryCheckboxStates(categoryId);
                         } else {
-                            container.html('<div class="notice notice-error" style="margin: 10px;"><p>' + 
-                                (response.data.message || '<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>') + 
-                                '</p></div>');
+                            alert((response.data.message || '<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>'));
                         }
                     },
                     error: function() {
-                        container.html('<div class="notice notice-error" style="margin: 10px;"><p><?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?></p></div>');
+                        alert('<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>');
                     }
                 });
             }
@@ -679,10 +663,9 @@ class GSD_Admin {
                 
                 // Debounce saves to avoid excessive AJAX calls
                 saveTimeouts[categoryId] = setTimeout(function() {
-                    var container = $('#gsd-products-' + categoryId + ' .gsd-products-container');
                     var productSettings = [];
                     
-                    container.find('.gsd-product-row').each(function() {
+                    $('.gsd-product-row[data-category-id="' + categoryId + '"]').each(function() {
                         var row = $(this);
                         var productId = row.data('product-id');
                         
@@ -800,11 +783,9 @@ class GSD_Admin {
                 });
                 
                 if (hasIndeterminate) {
-                    categoryRow.addClass('has-indeterminate');
-                    gsdDebugLog('  → Added has-indeterminate class to category ' + categoryId);
+                    gsdDebugLog('  → Category ' + categoryId + ' has indeterminate checkboxes');
                 } else {
-                    categoryRow.removeClass('has-indeterminate');
-                    gsdDebugLog('  → Removed has-indeterminate class from category ' + categoryId);
+                    gsdDebugLog('  → Category ' + categoryId + ' has no indeterminate checkboxes');
                 }
             }
             
@@ -897,13 +878,7 @@ class GSD_Admin {
                                              (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
                                              (categoryContactCheckbox && categoryContactCheckbox.indeterminate);
                     
-                    if (hasAnyIndeterminate) {
-                        categoryRow.addClass('has-indeterminate');
-                    } else {
-                        categoryRow.removeClass('has-indeterminate');
-                    }
-                    
-                    gsdDebugLog('  → Updated has-indeterminate class', {
+                    gsdDebugLog('  → Updated indeterminate states', {
                         hasAnyIndeterminate: hasAnyIndeterminate,
                         homeIndeterminate: categoryHomeCheckbox ? categoryHomeCheckbox.indeterminate : 'N/A',
                         expressIndeterminate: categoryExpressCheckbox ? categoryExpressCheckbox.indeterminate : 'N/A',
@@ -1503,49 +1478,39 @@ class GSD_Admin {
         $category_has_express_delivery = in_array($category_id, $selected_express_delivery);
         $category_has_contact_delivery = in_array($category_id, $selected_contact_delivery);
         
-        // Build products table HTML
+        // Build products as table rows that will be inserted into the main table
         ob_start();
+        foreach ($products as $product) : 
+            // Get product meta, or use category default if not set
+            $home_delivery_meta = get_post_meta($product->ID, '_gsd_home_delivery_available', true);
+            $express_delivery_meta = get_post_meta($product->ID, '_gsd_express_delivery_available', true);
+            $contact_delivery_meta = get_post_meta($product->ID, '_gsd_contact_for_delivery', true);
+            
+            // If meta is empty, inherit from category; otherwise use saved value
+            $home_delivery = ($home_delivery_meta === '') ? $category_has_home_delivery : ($home_delivery_meta === 'yes');
+            $express_delivery = ($express_delivery_meta === '') ? $category_has_express_delivery : ($express_delivery_meta === 'yes');
+            $contact_delivery = ($contact_delivery_meta === '') ? $category_has_contact_delivery : ($contact_delivery_meta === 'yes');
         ?>
-        <table class="gsd-products-table">
-            <thead>
-                <tr>
-                    <th><?php echo esc_html__('Product', 'garden-sheds-delivery'); ?></th>
-                    <th style="text-align: center; width: 120px;"><?php echo esc_html__('Home Delivery', 'garden-sheds-delivery'); ?></th>
-                    <th style="text-align: center; width: 120px;"><?php echo esc_html__('Small Items', 'garden-sheds-delivery'); ?></th>
-                    <th style="text-align: center; width: 150px;"><?php echo esc_html__('Contact for Delivery', 'garden-sheds-delivery'); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($products as $product) : 
-                    // Get product meta, or use category default if not set
-                    $home_delivery_meta = get_post_meta($product->ID, '_gsd_home_delivery_available', true);
-                    $express_delivery_meta = get_post_meta($product->ID, '_gsd_express_delivery_available', true);
-                    $contact_delivery_meta = get_post_meta($product->ID, '_gsd_contact_for_delivery', true);
-                    
-                    // If meta is empty, inherit from category; otherwise use saved value
-                    $home_delivery = ($home_delivery_meta === '') ? $category_has_home_delivery : ($home_delivery_meta === 'yes');
-                    $express_delivery = ($express_delivery_meta === '') ? $category_has_express_delivery : ($express_delivery_meta === 'yes');
-                    $contact_delivery = ($contact_delivery_meta === '') ? $category_has_contact_delivery : ($contact_delivery_meta === 'yes');
-                ?>
-                <tr class="gsd-product-row" data-product-id="<?php echo esc_attr($product->ID); ?>">
-                    <td class="gsd-product-name">
-                        <a href="<?php echo esc_url(get_edit_post_link($product->ID)); ?>" target="_blank">
-                            <?php echo esc_html($product->post_title); ?>
-                        </a>
-                    </td>
-                    <td style="text-align: center;">
-                        <input type="checkbox" class="gsd-product-home-delivery" <?php checked($home_delivery); ?> />
-                    </td>
-                    <td style="text-align: center;">
-                        <input type="checkbox" class="gsd-product-express-delivery" <?php checked($express_delivery); ?> />
-                    </td>
-                    <td style="text-align: center;">
-                        <input type="checkbox" class="gsd-product-contact-delivery" <?php checked($contact_delivery); ?> />
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+        <tr class="gsd-product-row" data-product-id="<?php echo esc_attr($product->ID); ?>" data-category-id="<?php echo esc_attr($category_id); ?>">
+            <td></td>
+            <td class="gsd-product-name" style="padding-left: 30px;">
+                <a href="<?php echo esc_url(get_edit_post_link($product->ID)); ?>" target="_blank">
+                    <?php echo esc_html($product->post_title); ?>
+                </a>
+            </td>
+            <td style="text-align: center;">
+                <input type="checkbox" class="gsd-product-home-delivery" <?php checked($home_delivery); ?> />
+            </td>
+            <td style="text-align: center;">
+                <input type="checkbox" class="gsd-product-express-delivery" <?php checked($express_delivery); ?> />
+            </td>
+            <td style="text-align: center;">
+                <input type="checkbox" class="gsd-product-contact-delivery" <?php checked($contact_delivery); ?> />
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+        <?php endforeach;
         <?php
         $html = ob_get_clean();
         
