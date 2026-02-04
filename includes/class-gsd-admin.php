@@ -182,12 +182,18 @@ class GSD_Admin {
             $category_products = $products_by_category[$category->term_id];
             
             // Check each delivery option
-            foreach (array('home_delivery', 'express_delivery', 'contact_delivery') as $option) {
+            $meta_keys = array(
+                'home_delivery' => '_gsd_home_delivery_available',
+                'express_delivery' => '_gsd_express_delivery_available',
+                'contact_delivery' => '_gsd_contact_for_delivery'
+            );
+            
+            foreach ($meta_keys as $option => $meta_key) {
                 $checked_count = 0;
                 
                 foreach ($category_products as $product_id) {
-                    $value = get_post_meta($product_id, 'gsd_' . $option, true);
-                    if ($value === '1' || $value === 1) {
+                    $value = get_post_meta($product_id, $meta_key, true);
+                    if ($value === 'yes') {
                         $checked_count++;
                     }
                 }
