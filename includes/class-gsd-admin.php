@@ -34,6 +34,7 @@ class GSD_Admin {
         add_action('admin_init', array($this, 'register_settings'));
         add_action('wp_ajax_gsd_get_category_products', array($this, 'ajax_get_category_products'));
         add_action('wp_ajax_gsd_save_product_shipping', array($this, 'ajax_save_product_shipping'));
+        add_action('wp_ajax_gsd_inspect_product_meta', array($this, 'ajax_inspect_product_meta'));
     }
 
     /**
@@ -244,6 +245,75 @@ class GSD_Admin {
                     <input type="submit" name="gsd_save_settings" class="button-primary" value="<?php echo esc_attr__('Save Settings', 'garden-sheds-delivery'); ?>" />
                 </p>
             </form>
+            
+            <!-- DEBUG PANEL -->
+            <div id="gsd-debug-panel" style="margin-top: 40px; padding: 20px; background: #f9f9f9; border: 2px solid #d63638; border-radius: 8px;">
+                <h2 style="margin-top: 0; color: #d63638;">🐛 Debug Panel</h2>
+                <p style="color: #666; margin-bottom: 20px;">This panel helps diagnose why settings aren't being saved.</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Database State -->
+                    <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd;">
+                        <h3 style="margin-top: 0;">📊 Current Database State</h3>
+                        <div style="font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto;">
+                            <strong>Home Delivery Categories:</strong><br>
+                            <pre style="background: #f0f0f0; padding: 10px; border-radius: 3px; overflow-x: auto;"><?php 
+                                $debug_home = get_option('gsd_home_delivery_categories', array());
+                                echo esc_html(print_r($debug_home, true)); 
+                            ?></pre>
+                            
+                            <strong>Express Delivery Categories:</strong><br>
+                            <pre style="background: #f0f0f0; padding: 10px; border-radius: 3px; overflow-x: auto;"><?php 
+                                $debug_express = get_option('gsd_express_delivery_categories', array());
+                                echo esc_html(print_r($debug_express, true)); 
+                            ?></pre>
+                            
+                            <strong>Contact Delivery Categories:</strong><br>
+                            <pre style="background: #f0f0f0; padding: 10px; border-radius: 3px; overflow-x: auto;"><?php 
+                                $debug_contact = get_option('gsd_contact_delivery_categories', array());
+                                echo esc_html(print_r($debug_contact, true)); 
+                            ?></pre>
+                            
+                            <strong>Main Freight Categories:</strong><br>
+                            <pre style="background: #f0f0f0; padding: 10px; border-radius: 3px; overflow-x: auto;"><?php 
+                                $debug_mainfreight = get_option('gsd_main_freight_categories', array());
+                                echo esc_html(print_r($debug_mainfreight, true)); 
+                            ?></pre>
+                            
+                            <strong>PBT Categories:</strong><br>
+                            <pre style="background: #f0f0f0; padding: 10px; border-radius: 3px; overflow-x: auto;"><?php 
+                                $debug_pbt = get_option('gsd_pbt_categories', array());
+                                echo esc_html(print_r($debug_pbt, true)); 
+                            ?></pre>
+                        </div>
+                    </div>
+                    
+                    <!-- AJAX Activity Log -->
+                    <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd;">
+                        <h3 style="margin-top: 0;">📡 AJAX Activity Log</h3>
+                        <div id="gsd-ajax-log" style="font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; border-radius: 3px;">
+                            <div style="color: #888;">Waiting for activity...</div>
+                        </div>
+                        <button type="button" id="gsd-clear-log" class="button" style="margin-top: 10px;">Clear Log</button>
+                    </div>
+                </div>
+                
+                <!-- Product Meta Inspector -->
+                <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd; margin-top: 20px;">
+                    <h3 style="margin-top: 0;">🔍 Product Meta Inspector</h3>
+                    <p>Enter a product ID to inspect its delivery settings:</p>
+                    <input type="number" id="gsd-product-id-input" placeholder="Product ID" style="width: 150px; margin-right: 10px;">
+                    <button type="button" id="gsd-inspect-product" class="button">Inspect Product</button>
+                    <div id="gsd-product-meta-result" style="margin-top: 15px; font-family: monospace; font-size: 12px;"></div>
+                </div>
+                
+                <!-- Test Save Button -->
+                <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd; margin-top: 20px;">
+                    <h3 style="margin-top: 0;">🧪 Test Save Functionality</h3>
+                    <button type="button" id="gsd-test-save" class="button button-primary">Test AJAX Save</button>
+                    <div id="gsd-test-result" style="margin-top: 15px; font-family: monospace; font-size: 12px;"></div>
+                </div>
+            </div>
         </div>
         
         <style>
@@ -517,6 +587,144 @@ class GSD_Admin {
                 // Auto-save the product settings
                 autoSaveProductSettings(categoryId);
             });
+            
+            // ==================== DEBUG PANEL FUNCTIONALITY ====================
+            
+            var ajaxLog = [];
+            
+            function logToDebug(message, type) {
+                type = type || 'info';
+                var timestamp = new Date().toLocaleTimeString();
+                var color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : type === 'warning' ? '#ff0' : '#0ff';
+                
+                ajaxLog.push({
+                    time: timestamp,
+                    message: message,
+                    type: type
+                });
+                
+                var logDiv = $('#gsd-ajax-log');
+                var logEntry = $('<div>').css('color', color).html('[' + timestamp + '] ' + message);
+                logDiv.append(logEntry);
+                logDiv.scrollTop(logDiv[0].scrollHeight);
+            }
+            
+            // Clear log button
+            $('#gsd-clear-log').on('click', function() {
+                $('#gsd-ajax-log').html('<div style="color: #888;">Log cleared...</div>');
+                ajaxLog = [];
+            });
+            
+            // Product meta inspector
+            $('#gsd-inspect-product').on('click', function() {
+                var productId = $('#gsd-product-id-input').val();
+                if (!productId) {
+                    alert('Please enter a product ID');
+                    return;
+                }
+                
+                $('#gsd-product-meta-result').html('<span class="spinner is-active" style="float: none;"></span> Loading...');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'gsd_inspect_product_meta',
+                        product_id: productId,
+                        nonce: '<?php echo wp_create_nonce('gsd_inspect_product_meta'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            var html = '<div style="background: #f0f0f0; padding: 10px; border-radius: 3px;">';
+                            html += '<strong>Product #' + productId + ' - ' + response.data.title + '</strong><br><br>';
+                            html += '<strong>_gsd_home_delivery_available:</strong> ' + (response.data.home_delivery || '(empty)') + '<br>';
+                            html += '<strong>_gsd_express_delivery_available:</strong> ' + (response.data.express_delivery || '(empty)') + '<br>';
+                            html += '<strong>_gsd_contact_for_delivery:</strong> ' + (response.data.contact_delivery || '(empty)') + '<br>';
+                            html += '<br><strong>Categories:</strong> ' + (response.data.categories || 'None') + '<br>';
+                            html += '</div>';
+                            $('#gsd-product-meta-result').html(html);
+                        } else {
+                            $('#gsd-product-meta-result').html('<div style="background: #fee; padding: 10px; border-radius: 3px; color: #c00;">Error: ' + response.data.message + '</div>');
+                        }
+                    },
+                    error: function() {
+                        $('#gsd-product-meta-result').html('<div style="background: #fee; padding: 10px; border-radius: 3px; color: #c00;">AJAX error occurred</div>');
+                    }
+                });
+            });
+            
+            // Test save button
+            $('#gsd-test-save').on('click', function() {
+                $('#gsd-test-result').html('<span class="spinner is-active" style="float: none;"></span> Testing save...');
+                logToDebug('Testing AJAX save with dummy data...', 'info');
+                
+                var testData = [{
+                    product_id: 1,
+                    home_delivery: true,
+                    express_delivery: false,
+                    contact_delivery: false
+                }];
+                
+                logToDebug('Test data: ' + JSON.stringify(testData), 'info');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'gsd_save_product_shipping',
+                        products: testData,
+                        nonce: '<?php echo wp_create_nonce('gsd_save_product_shipping'); ?>'
+                    },
+                    success: function(response) {
+                        logToDebug('Save response: ' + JSON.stringify(response), response.success ? 'success' : 'error');
+                        if (response.success) {
+                            $('#gsd-test-result').html('<div style="background: #efe; padding: 10px; border-radius: 3px; color: #060;">✓ Test save successful! Response: ' + response.data.message + '</div>');
+                        } else {
+                            $('#gsd-test-result').html('<div style="background: #fee; padding: 10px; border-radius: 3px; color: #c00;">✗ Test save failed: ' + response.data.message + '</div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        logToDebug('AJAX error: ' + error, 'error');
+                        $('#gsd-test-result').html('<div style="background: #fee; padding: 10px; border-radius: 3px; color: #c00;">✗ AJAX error: ' + error + '</div>');
+                    }
+                });
+            });
+            
+            // Intercept all AJAX calls to log them
+            var originalAjax = $.ajax;
+            $.ajax = function(options) {
+                // Only log GSD-related AJAX calls
+                if (options.data && options.data.action && options.data.action.indexOf('gsd_') === 0) {
+                    logToDebug('→ AJAX Request: ' + options.data.action, 'info');
+                    
+                    // Wrap success callback
+                    var originalSuccess = options.success;
+                    options.success = function(response) {
+                        if (response.success) {
+                            logToDebug('✓ ' + options.data.action + ' succeeded', 'success');
+                        } else {
+                            logToDebug('✗ ' + options.data.action + ' failed: ' + (response.data ? response.data.message : 'Unknown error'), 'error');
+                        }
+                        if (originalSuccess) {
+                            originalSuccess.apply(this, arguments);
+                        }
+                    };
+                    
+                    // Wrap error callback
+                    var originalError = options.error;
+                    options.error = function(xhr, status, error) {
+                        logToDebug('✗ ' + options.data.action + ' AJAX error: ' + error, 'error');
+                        if (originalError) {
+                            originalError.apply(this, arguments);
+                        }
+                    };
+                }
+                
+                return originalAjax.call(this, options);
+            };
+            
+            // Initial log
+            logToDebug('Debug panel initialized', 'success');
         });
         </script>
         <?php
@@ -1003,21 +1211,32 @@ class GSD_Admin {
      * AJAX handler to save product shipping settings
      */
     public function ajax_save_product_shipping() {
+        // Debug logging
+        error_log('GSD: ajax_save_product_shipping called');
+        error_log('GSD: POST data: ' . print_r($_POST, true));
+        
         check_ajax_referer('gsd_save_product_shipping', 'nonce');
         
         if (!current_user_can('manage_woocommerce')) {
+            error_log('GSD: Permission denied for user');
             wp_send_json_error(array('message' => __('Permission denied', 'garden-sheds-delivery')));
         }
         
         $products = isset($_POST['products']) ? (array) $_POST['products'] : array();
         
         if (empty($products)) {
-            wp_send_json_error(array('message' => __('Invalid data', 'garden-sheds-delivery')));
+            error_log('GSD: No products in POST data');
+            wp_send_json_error(array('message' => __('Invalid data - no products provided', 'garden-sheds-delivery')));
         }
+        
+        $saved_count = 0;
+        $skipped_count = 0;
         
         foreach ($products as $product_data) {
             // Ensure product_data is an array
             if (!is_array($product_data)) {
+                error_log('GSD: Product data is not an array: ' . print_r($product_data, true));
+                $skipped_count++;
                 continue;
             }
             
@@ -1025,25 +1244,77 @@ class GSD_Admin {
             $product_id = isset($product_data['product_id']) ? intval($product_data['product_id']) : 0;
             
             if (!$product_id || get_post_type($product_id) !== 'product') {
+                error_log('GSD: Invalid product ID: ' . $product_id);
+                $skipped_count++;
                 continue;
             }
             
             // Save home delivery setting (only 'yes' or 'no')
             $home_delivery = !empty($product_data['home_delivery']) ? 'yes' : 'no';
-            update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
+            $result1 = update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
             
             // Save express delivery setting (only 'yes' or 'no')
             $express_delivery = !empty($product_data['express_delivery']) ? 'yes' : 'no';
-            update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
+            $result2 = update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
             
             // Save contact for delivery setting (only 'yes' or 'no')
             $contact_delivery = !empty($product_data['contact_delivery']) ? 'yes' : 'no';
-            update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
+            $result3 = update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
+            
+            error_log("GSD: Saved product #{$product_id}: home={$home_delivery}, express={$express_delivery}, contact={$contact_delivery}");
+            $saved_count++;
         }
         
         // Clear shipping cache
         $this->clear_shipping_cache();
         
-        wp_send_json_success(array('message' => __('Settings saved successfully', 'garden-sheds-delivery')));
+        error_log("GSD: Save complete. Saved: {$saved_count}, Skipped: {$skipped_count}");
+        
+        wp_send_json_success(array(
+            'message' => sprintf(__('Settings saved successfully (%d products updated, %d skipped)', 'garden-sheds-delivery'), $saved_count, $skipped_count),
+            'saved' => $saved_count,
+            'skipped' => $skipped_count
+        ));
+    }
+    
+    /**
+     * AJAX handler to inspect product meta (for debugging)
+     */
+    public function ajax_inspect_product_meta() {
+        check_ajax_referer('gsd_inspect_product_meta', 'nonce');
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => __('Permission denied', 'garden-sheds-delivery')));
+        }
+        
+        $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
+        
+        if (!$product_id || get_post_type($product_id) !== 'product') {
+            wp_send_json_error(array('message' => __('Invalid product ID', 'garden-sheds-delivery')));
+        }
+        
+        $product = get_post($product_id);
+        
+        // Get meta values
+        $home_delivery = get_post_meta($product_id, '_gsd_home_delivery_available', true);
+        $express_delivery = get_post_meta($product_id, '_gsd_express_delivery_available', true);
+        $contact_delivery = get_post_meta($product_id, '_gsd_contact_for_delivery', true);
+        
+        // Get product categories
+        $terms = get_the_terms($product_id, 'product_cat');
+        $categories = array();
+        if ($terms && !is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                $categories[] = $term->name . ' (ID: ' . $term->term_id . ')';
+            }
+        }
+        
+        wp_send_json_success(array(
+            'title' => $product->post_title,
+            'home_delivery' => $home_delivery === '' ? '(empty - inherits from category)' : $home_delivery,
+            'express_delivery' => $express_delivery === '' ? '(empty - inherits from category)' : $express_delivery,
+            'contact_delivery' => $contact_delivery === '' ? '(empty - inherits from category)' : $contact_delivery,
+            'categories' => !empty($categories) ? implode(', ', $categories) : 'None',
+        ));
     }
 }
