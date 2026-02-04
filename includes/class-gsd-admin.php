@@ -348,19 +348,19 @@ class GSD_Admin {
                     <?php
                     // Get the first available product for testing
                     $test_products = get_posts(array(
-                        'post_type' => array('product', 'product_variation'),
+                        'post_type' => 'product',
                         'posts_per_page' => 1,
                         'orderby' => 'ID',
                         'order' => 'ASC',
                         'fields' => 'ids'
                     ));
-                    $test_product_id = !empty($test_products) ? $test_products[0] : 0;
+                    $test_product_id = !empty($test_products) ? absint($test_products[0]) : 0;
                     ?>
-                    <button type="button" id="gsd-test-save" class="button button-primary" <?php echo ($test_product_id === 0) ? 'disabled' : ''; ?>>Test AJAX Save</button>
+                    <button type="button" id="gsd-test-save" class="button button-primary" <?php echo ($test_product_id === 0) ? 'disabled aria-describedby="gsd-test-save-warning"' : ''; ?>>Test AJAX Save</button>
                     <?php if ($test_product_id > 0): ?>
-                        <p style="color: #666; margin: 10px 0 0 0; font-size: 12px;">Using product ID <?php echo esc_html($test_product_id); ?> for testing</p>
+                        <p style="color: #666; margin: 10px 0 0 0; font-size: 12px;">Using product ID <?php echo absint($test_product_id); ?> for testing</p>
                     <?php else: ?>
-                        <p style="color: #d63638; margin: 10px 0 0 0; font-size: 12px;">⚠️ No products found. Please create a product first to test the save functionality.</p>
+                        <p id="gsd-test-save-warning" style="color: #d63638; margin: 10px 0 0 0; font-size: 12px;">⚠️ No products found. Please create a product first to test the save functionality.</p>
                     <?php endif; ?>
                     <div id="gsd-test-result" style="margin-top: 15px; font-family: monospace; font-size: 12px;"></div>
                 </div>
