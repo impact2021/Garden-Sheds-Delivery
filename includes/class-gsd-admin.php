@@ -139,42 +139,57 @@ class GSD_Admin {
         
         // Calculate indeterminate states for each category
         $indeterminate_states = array();
+        
+        // Initialize all categories with false states
         foreach ($categories as $category) {
             $indeterminate_states[$category->term_id] = array(
                 'home_delivery' => false,
                 'express_delivery' => false,
                 'contact_delivery' => false,
             );
+        }
+        
+        // Get all products with their categories in a single query
+        $all_products = get_posts(array(
+            'post_type' => 'product',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+        ));
+        
+        // Group products by category
+        $products_by_category = array();
+        foreach ($all_products as $product_id) {
+            $product_categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'ids'));
+            foreach ($product_categories as $cat_id) {
+                if (!isset($products_by_category[$cat_id])) {
+                    $products_by_category[$cat_id] = array();
+                }
+                $products_by_category[$cat_id][] = $product_id;
+            }
+        }
+        
+        // Calculate indeterminate states
+        foreach ($categories as $category) {
+            if (!isset($products_by_category[$category->term_id])) {
+                continue;
+            }
             
-            // Get products in this category
-            $products = get_posts(array(
-                'post_type' => 'product',
-                'posts_per_page' => -1,
-                'tax_query' => array(
-                    array(
-                        'taxonomy' => 'product_cat',
-                        'field' => 'term_id',
-                        'terms' => $category->term_id,
-                    ),
-                ),
-            ));
+            $category_products = $products_by_category[$category->term_id];
             
-            if (!empty($products)) {
-                // Check each delivery option
-                foreach (array('home_delivery', 'express_delivery', 'contact_delivery') as $option) {
-                    $checked_count = 0;
-                    
-                    foreach ($products as $product) {
-                        $value = get_post_meta($product->ID, 'gsd_' . $option, true);
-                        if ($value == 1) {
-                            $checked_count++;
-                        }
+            // Check each delivery option
+            foreach (array('home_delivery', 'express_delivery', 'contact_delivery') as $option) {
+                $checked_count = 0;
+                
+                foreach ($category_products as $product_id) {
+                    $value = get_post_meta($product_id, 'gsd_' . $option, true);
+                    if ($value === '1' || $value === 1) {
+                        $checked_count++;
                     }
-                    
-                    // If some (but not all) products have this option, it's indeterminate
-                    if ($checked_count > 0 && $checked_count < count($products)) {
-                        $indeterminate_states[$category->term_id][$option] = true;
-                    }
+                }
+                
+                // If some (but not all) products have this option, it's indeterminate
+                if ($checked_count > 0 && $checked_count < count($category_products)) {
+                    $indeterminate_states[$category->term_id][$option] = true;
                 }
             }
         }
