@@ -345,7 +345,23 @@ class GSD_Admin {
                 <!-- Test Save Button -->
                 <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd; margin-top: 20px;">
                     <h3 style="margin-top: 0;">🧪 Test Save Functionality</h3>
-                    <button type="button" id="gsd-test-save" class="button button-primary">Test AJAX Save</button>
+                    <?php
+                    // Get the first available product for testing
+                    $test_products = get_posts(array(
+                        'post_type' => 'product',
+                        'posts_per_page' => 1,
+                        'orderby' => 'ID',
+                        'order' => 'ASC',
+                        'fields' => 'ids'
+                    ));
+                    $test_product_id = !empty($test_products) ? absint($test_products[0]) : 0;
+                    ?>
+                    <button type="button" id="gsd-test-save" class="button button-primary" <?php echo ($test_product_id === 0) ? 'disabled aria-describedby="gsd-test-save-warning"' : ''; ?>>Test AJAX Save</button>
+                    <?php if ($test_product_id > 0): ?>
+                        <p style="color: #666; margin: 10px 0 0 0; font-size: 12px;">Using product ID <?php echo absint($test_product_id); ?> for testing</p>
+                    <?php else: ?>
+                        <p id="gsd-test-save-warning" style="color: #d63638; margin: 10px 0 0 0; font-size: 12px;">⚠️ No products found. Please create a product first to test the save functionality.</p>
+                    <?php endif; ?>
                     <div id="gsd-test-result" style="margin-top: 15px; font-family: monospace; font-size: 12px;"></div>
                 </div>
             </div>
@@ -732,7 +748,7 @@ class GSD_Admin {
                 logToDebug('Testing AJAX save with dummy data...', 'info');
                 
                 var testData = [{
-                    product_id: 1,
+                    product_id: <?php echo intval($test_product_id); ?>,
                     home_delivery: 1,
                     express_delivery: 0,
                     contact_delivery: 0
@@ -1318,7 +1334,8 @@ class GSD_Admin {
                 continue;
             }
             
-            if (get_post_type($product_id) !== 'product') {
+            $post_type = get_post_type($product_id);
+            if (!in_array($post_type, array('product', 'product_variation'), true)) {
                 $errors[] = sprintf(__('Product ID %d is not a valid product', 'garden-sheds-delivery'), $product_id);
                 continue;
             }
