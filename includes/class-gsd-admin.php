@@ -506,7 +506,6 @@ class GSD_Admin {
                             products: productSettings,
                             nonce: '<?php echo wp_create_nonce('gsd_save_product_shipping'); ?>'
                         },
-                        traditional: true, // Important: ensures arrays are serialized correctly
                         success: function(response) {
                             if (response.success) {
                                 // Show success notification
