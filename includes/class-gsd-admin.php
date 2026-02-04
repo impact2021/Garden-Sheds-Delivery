@@ -136,6 +136,68 @@ class GSD_Admin {
             'taxonomy' => 'product_cat',
             'hide_empty' => false,
         ));
+        
+        // Calculate indeterminate states for each category
+        $indeterminate_states = array();
+        
+        // Initialize all categories with false states
+        foreach ($categories as $category) {
+            $indeterminate_states[$category->term_id] = array(
+                'home_delivery' => false,
+                'express_delivery' => false,
+                'contact_delivery' => false,
+            );
+        }
+        
+        // Get all products with their categories in a single query
+        $all_products = get_posts(array(
+            'post_type' => 'product',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+        ));
+        
+        // Prime meta cache for all products to avoid N+1 queries
+        if (!empty($all_products)) {
+            update_meta_cache('post', $all_products);
+        }
+        
+        // Group products by category
+        $products_by_category = array();
+        foreach ($all_products as $product_id) {
+            $product_categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'ids'));
+            foreach ($product_categories as $cat_id) {
+                if (!isset($products_by_category[$cat_id])) {
+                    $products_by_category[$cat_id] = array();
+                }
+                $products_by_category[$cat_id][] = $product_id;
+            }
+        }
+        
+        // Calculate indeterminate states
+        foreach ($categories as $category) {
+            if (!isset($products_by_category[$category->term_id])) {
+                continue;
+            }
+            
+            $category_products = $products_by_category[$category->term_id];
+            
+            // Check each delivery option
+            foreach (array('home_delivery', 'express_delivery', 'contact_delivery') as $option) {
+                $checked_count = 0;
+                
+                foreach ($category_products as $product_id) {
+                    $value = get_post_meta($product_id, 'gsd_' . $option, true);
+                    if ($value === '1' || $value === 1) {
+                        $checked_count++;
+                    }
+                }
+                
+                // If some (but not all) products have this option, it's indeterminate
+                if ($checked_count > 0 && $checked_count < count($category_products)) {
+                    $indeterminate_states[$category->term_id][$option] = true;
+                }
+            }
+        }
         ?>
         <div class="wrap">
             <h1><?php echo esc_html__('Shed Delivery Settings', 'garden-sheds-delivery'); ?></h1>
@@ -416,6 +478,39 @@ class GSD_Admin {
         
         <script>
         jQuery(document).ready(function($) {
+            // Set indeterminate states on page load
+            var indeterminateStates = <?php echo json_encode($indeterminate_states); ?>;
+            
+            $.each(indeterminateStates, function(categoryId, states) {
+                var categoryRow = $('.gsd-category-row[data-category-id="' + categoryId + '"]');
+                
+                if (states.home_delivery) {
+                    var homeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
+                    if (homeCheckbox) {
+                        homeCheckbox.indeterminate = true;
+                    }
+                }
+                
+                if (states.express_delivery) {
+                    var expressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
+                    if (expressCheckbox) {
+                        expressCheckbox.indeterminate = true;
+                    }
+                }
+                
+                if (states.contact_delivery) {
+                    var contactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
+                    if (contactCheckbox) {
+                        contactCheckbox.indeterminate = true;
+                    }
+                }
+                
+                // Add visual indicator if any checkbox is indeterminate
+                if (states.home_delivery || states.express_delivery || states.contact_delivery) {
+                    categoryRow.addClass('has-indeterminate');
+                }
+            });
+            
             // Toggle product display
             $('.gsd-toggle-products').on('click', function() {
                 var button = $(this);
