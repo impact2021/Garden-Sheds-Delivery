@@ -642,11 +642,23 @@ class GSD_Admin {
                             // Update category checkbox states based on loaded products
                             updateCategoryCheckboxStates(categoryId);
                         } else {
-                            alert((response.data.message || '<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>'));
+                            // Insert error row
+                            var errorRow = '<tr class="gsd-product-row gsd-error-row" data-category-id="' + categoryId + '">' +
+                                '<td colspan="7" style="padding: 15px;">' +
+                                '<div class="notice notice-error" style="margin: 0;"><p>' +
+                                (response.data.message || '<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>') +
+                                '</p></div></td></tr>';
+                            $(errorRow).insertAfter(categoryRow);
                         }
                     },
                     error: function() {
-                        alert('<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>');
+                        // Insert error row
+                        var errorRow = '<tr class="gsd-product-row gsd-error-row" data-category-id="' + categoryId + '">' +
+                            '<td colspan="7" style="padding: 15px;">' +
+                            '<div class="notice notice-error" style="margin: 0;"><p>' +
+                            '<?php echo esc_js(__('Error loading products', 'garden-sheds-delivery')); ?>' +
+                            '</p></div></td></tr>';
+                        $(errorRow).insertAfter(categoryRow);
                     }
                 });
             }
@@ -1492,7 +1504,7 @@ class GSD_Admin {
             $contact_delivery = ($contact_delivery_meta === '') ? $category_has_contact_delivery : ($contact_delivery_meta === 'yes');
         ?>
         <tr class="gsd-product-row" data-product-id="<?php echo esc_attr($product->ID); ?>" data-category-id="<?php echo esc_attr($category_id); ?>">
-            <td></td>
+            <td><!-- Empty: aligns with toggle button column --></td>
             <td class="gsd-product-name" style="padding-left: 30px;">
                 <a href="<?php echo esc_url(get_edit_post_link($product->ID)); ?>" target="_blank">
                     <?php echo esc_html($product->post_title); ?>
@@ -1507,8 +1519,8 @@ class GSD_Admin {
             <td style="text-align: center;">
                 <input type="checkbox" class="gsd-product-contact-delivery" <?php checked($contact_delivery); ?> />
             </td>
-            <td></td>
-            <td></td>
+            <td><!-- Empty: aligns with Main Freight column --></td>
+            <td><!-- Empty: aligns with PBT column --></td>
         </tr>
         <?php endforeach;
         $html = ob_get_clean();
