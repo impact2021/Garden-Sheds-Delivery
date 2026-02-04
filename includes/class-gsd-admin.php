@@ -439,11 +439,13 @@ class GSD_Admin {
                         
                         productSettings.push({
                             product_id: productId,
-                            home_delivery: row.find('.gsd-product-home-delivery').is(':checked'),
-                            express_delivery: row.find('.gsd-product-express-delivery').is(':checked'),
-                            contact_delivery: row.find('.gsd-product-contact-delivery').is(':checked')
+                            home_delivery: row.find('.gsd-product-home-delivery').is(':checked') ? 1 : 0,
+                            express_delivery: row.find('.gsd-product-express-delivery').is(':checked') ? 1 : 0,
+                            contact_delivery: row.find('.gsd-product-contact-delivery').is(':checked') ? 1 : 0
                         });
                     });
+                    
+                    console.log('Saving product settings for category ' + categoryId + ':', productSettings);
                     
                     $.ajax({
                         url: ajaxurl,
@@ -453,6 +455,7 @@ class GSD_Admin {
                             products: productSettings,
                             nonce: '<?php echo wp_create_nonce('gsd_save_product_shipping'); ?>'
                         },
+                        traditional: true, // Important: ensures arrays are serialized correctly
                         success: function(response) {
                             if (response.success) {
                                 // Show success notification
@@ -1249,16 +1252,27 @@ class GSD_Admin {
                 continue;
             }
             
+            // Convert string 'true'/'false' to actual booleans
+            // jQuery serializes booleans as strings, so we need to handle both cases
+            $home_delivery_value = isset($product_data['home_delivery']) ? $product_data['home_delivery'] : false;
+            $express_delivery_value = isset($product_data['express_delivery']) ? $product_data['express_delivery'] : false;
+            $contact_delivery_value = isset($product_data['contact_delivery']) ? $product_data['contact_delivery'] : false;
+            
+            // Convert to boolean (handles both boolean and string 'true'/'false')
+            $home_delivery_bool = filter_var($home_delivery_value, FILTER_VALIDATE_BOOLEAN);
+            $express_delivery_bool = filter_var($express_delivery_value, FILTER_VALIDATE_BOOLEAN);
+            $contact_delivery_bool = filter_var($contact_delivery_value, FILTER_VALIDATE_BOOLEAN);
+            
             // Save home delivery setting (only 'yes' or 'no')
-            $home_delivery = !empty($product_data['home_delivery']) ? 'yes' : 'no';
+            $home_delivery = $home_delivery_bool ? 'yes' : 'no';
             $result1 = update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
             
             // Save express delivery setting (only 'yes' or 'no')
-            $express_delivery = !empty($product_data['express_delivery']) ? 'yes' : 'no';
+            $express_delivery = $express_delivery_bool ? 'yes' : 'no';
             $result2 = update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
             
             // Save contact for delivery setting (only 'yes' or 'no')
-            $contact_delivery = !empty($product_data['contact_delivery']) ? 'yes' : 'no';
+            $contact_delivery = $contact_delivery_bool ? 'yes' : 'no';
             $result3 = update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
             
             error_log("GSD: Saved product #{$product_id}: home={$home_delivery}, express={$express_delivery}, contact={$contact_delivery}");
