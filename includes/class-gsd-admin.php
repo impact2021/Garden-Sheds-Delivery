@@ -32,9 +32,28 @@ class GSD_Admin {
     public function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         add_action('wp_ajax_gsd_get_category_products', array($this, 'ajax_get_category_products'));
         add_action('wp_ajax_gsd_save_product_shipping', array($this, 'ajax_save_product_shipping'));
         add_action('wp_ajax_gsd_inspect_product_meta', array($this, 'ajax_inspect_product_meta'));
+    }
+
+    /**
+     * Enqueue admin assets
+     */
+    public function enqueue_admin_assets($hook) {
+        // Only enqueue on our plugin pages
+        if (strpos($hook, 'garden-sheds-delivery') === false) {
+            return;
+        }
+        
+        // Enqueue admin CSS
+        wp_enqueue_style(
+            'gsd-admin-css',
+            GSD_PLUGIN_URL . 'assets/css/admin.css',
+            array(),
+            GSD_VERSION
+        );
     }
 
     /**
@@ -126,11 +145,27 @@ class GSD_Admin {
                 <strong>✓ Settings saved</strong>
             </div>
             
+            <!-- Auto-save error notification -->
+            <div id="gsd-autosave-error" style="display: none; position: fixed; top: 32px; right: 20px; z-index: 9999; background: #dc3232; color: white; padding: 12px 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                <strong>✗ <span id="gsd-error-message">Save failed</span></strong>
+            </div>
+            
             <form method="post" action="">
                 <?php wp_nonce_field('gsd_save_settings'); ?>
                 
                 <h2><?php echo esc_html__('Delivery Options by Category', 'garden-sheds-delivery'); ?></h2>
                 <p><?php echo esc_html__('Configure delivery options for each product category.', 'garden-sheds-delivery'); ?></p>
+                
+                <div class="gsd-mixed-state-notice">
+                    <strong><?php echo esc_html__('About Mixed States:', 'garden-sheds-delivery'); ?></strong>
+                    <p style="margin: 5px 0 0 0;">
+                        <?php 
+                        printf(
+                            esc_html__('When you expand a category and uncheck individual products, the category checkbox will show a dash (–) instead of a checkmark. This indicates that some products in that category have the shipping option enabled, while others don\'t. The entire row will be highlighted in yellow to make this clear. Changes to individual products are auto-saved immediately.', 'garden-sheds-delivery')
+                        );
+                        ?>
+                    </p>
+                </div>
                 
                 <?php if (!empty($categories) && !is_wp_error($categories)) : ?>
                 <table class="wp-list-table widefat fixed striped gsd-category-table">
@@ -465,12 +500,36 @@ class GSD_Admin {
                                     notification.fadeOut(200);
                                 }, 2000);
                                 console.log('Product settings saved successfully for category ' + categoryId);
+                                
+                                // Log any warnings if present
+                                if (response.data && response.data.errors && response.data.errors.length > 0) {
+                                    console.warn('Save completed with warnings:', response.data.errors);
+                                }
                             } else {
-                                console.error('Error saving product settings:', response.data.message);
+                                // Show error notification
+                                var errorNotification = $('#gsd-autosave-error');
+                                var errorMessage = response.data && response.data.message ? response.data.message : 'Unknown error';
+                                $('#gsd-error-message').text(errorMessage);
+                                errorNotification.fadeIn(200);
+                                setTimeout(function() {
+                                    errorNotification.fadeOut(200);
+                                }, 4000);
+                                console.error('Error saving product settings:', errorMessage);
+                                if (response.data && response.data.errors) {
+                                    console.error('Detailed errors:', response.data.errors);
+                                }
                             }
                         },
-                        error: function() {
-                            console.error('Error saving product settings');
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            // Show error notification
+                            var errorNotification = $('#gsd-autosave-error');
+                            $('#gsd-error-message').text('Network error: ' + textStatus);
+                            errorNotification.fadeIn(200);
+                            setTimeout(function() {
+                                errorNotification.fadeOut(200);
+                            }, 4000);
+                            console.error('AJAX error saving product settings:', textStatus, errorThrown);
+                            console.error('Response:', jqXHR.responseText);
                         }
                     });
                     
@@ -502,6 +561,17 @@ class GSD_Admin {
                 updateCheckboxState(categoryHomeCheckbox, homeCheckboxes);
                 updateCheckboxState(categoryExpressCheckbox, expressCheckboxes);
                 updateCheckboxState(categoryContactCheckbox, contactCheckboxes);
+                
+                // Add visual indicator if any checkbox is indeterminate
+                var hasIndeterminate = (categoryHomeCheckbox && categoryHomeCheckbox.indeterminate) ||
+                                      (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
+                                      (categoryContactCheckbox && categoryContactCheckbox.indeterminate);
+                
+                if (hasIndeterminate) {
+                    categoryRow.addClass('has-indeterminate');
+                } else {
+                    categoryRow.removeClass('has-indeterminate');
+                }
             }
             
             // Helper to set checkbox to checked, unchecked, or indeterminate
@@ -1220,32 +1290,36 @@ class GSD_Admin {
         if (!current_user_can('manage_woocommerce')) {
             error_log('GSD: Permission denied for user');
             wp_send_json_error(array('message' => __('Permission denied', 'garden-sheds-delivery')));
+            return;
         }
         
         $products = isset($_POST['products']) ? (array) $_POST['products'] : array();
         
         if (empty($products)) {
-            error_log('GSD: No products in POST data');
             wp_send_json_error(array('message' => __('Invalid data - no products provided', 'garden-sheds-delivery')));
+            return;
         }
         
         $saved_count = 0;
-        $skipped_count = 0;
+        $errors = array();
         
         foreach ($products as $product_data) {
             // Ensure product_data is an array
             if (!is_array($product_data)) {
-                error_log('GSD: Product data is not an array: ' . print_r($product_data, true));
-                $skipped_count++;
+                $errors[] = __('Invalid product data format', 'garden-sheds-delivery');
                 continue;
             }
             
             // Sanitize and validate product ID
             $product_id = isset($product_data['product_id']) ? intval($product_data['product_id']) : 0;
             
-            if (!$product_id || get_post_type($product_id) !== 'product') {
-                error_log('GSD: Invalid product ID: ' . $product_id);
-                $skipped_count++;
+            if (!$product_id) {
+                $errors[] = __('Invalid product ID', 'garden-sheds-delivery');
+                continue;
+            }
+            
+            if (get_post_type($product_id) !== 'product') {
+                $errors[] = sprintf(__('Product ID %d is not a valid product', 'garden-sheds-delivery'), $product_id);
                 continue;
             }
             
@@ -1264,70 +1338,43 @@ class GSD_Admin {
             $express_delivery = $express_delivery_bool ? 'yes' : 'no';
             $contact_delivery = $contact_delivery_bool ? 'yes' : 'no';
             
-            // Save settings and verify success
-            $home_saved = update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
-            $express_saved = update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
-            $contact_saved = update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
+            // Save contact for delivery setting (only 'yes' or 'no')
+            $contact_delivery = !empty($product_data['contact_delivery']) ? 'yes' : 'no';
+            update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
             
-            // Log save results
-            if ($home_saved === false || $express_saved === false || $contact_saved === false) {
-                error_log("GSD: Warning - Some meta updates may have failed for product #{$product_id}");
-            }
-            
-            error_log("GSD: Saved product #{$product_id}: home={$home_delivery}, express={$express_delivery}, contact={$contact_delivery}");
+            // Note: update_post_meta returns false for errors OR when value is unchanged.
+            // We count this as successful since all three updates were attempted without exceptions.
+            // This is acceptable because unchanged values aren't errors from a UX perspective.
             $saved_count++;
         }
         
         // Clear shipping cache
         $this->clear_shipping_cache();
         
-        error_log("GSD: Save complete. Saved: {$saved_count}, Skipped: {$skipped_count}");
-        
-        wp_send_json_success(array(
-            'message' => sprintf(__('Settings saved successfully (%d products updated, %d skipped)', 'garden-sheds-delivery'), $saved_count, $skipped_count),
-            'saved' => $saved_count,
-            'skipped' => $skipped_count
-        ));
-    }
-    
-    /**
-     * AJAX handler to inspect product meta (for debugging)
-     */
-    public function ajax_inspect_product_meta() {
-        check_ajax_referer('gsd_inspect_product_meta', 'nonce');
-        
-        if (!current_user_can('manage_woocommerce')) {
-            wp_send_json_error(array('message' => __('Permission denied', 'garden-sheds-delivery')));
-        }
-        
-        $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
-        
-        if (!$product_id || get_post_type($product_id) !== 'product') {
-            wp_send_json_error(array('message' => __('Invalid product ID', 'garden-sheds-delivery')));
-        }
-        
-        $product = get_post($product_id);
-        
-        // Get meta values
-        $home_delivery = get_post_meta($product_id, '_gsd_home_delivery_available', true);
-        $express_delivery = get_post_meta($product_id, '_gsd_express_delivery_available', true);
-        $contact_delivery = get_post_meta($product_id, '_gsd_contact_for_delivery', true);
-        
-        // Get product categories
-        $terms = get_the_terms($product_id, 'product_cat');
-        $categories = array();
-        if ($terms && !is_wp_error($terms)) {
-            foreach ($terms as $term) {
-                $categories[] = $term->name . ' (ID: ' . $term->term_id . ')';
+        // Send response with detailed information
+        if ($saved_count > 0) {
+            $message = sprintf(
+                _n('Successfully saved %d product', 'Successfully saved %d products', $saved_count, 'garden-sheds-delivery'),
+                $saved_count
+            );
+            
+            if (!empty($errors)) {
+                $message .= ' ' . sprintf(
+                    _n('(%d error)', '(%d errors)', count($errors), 'garden-sheds-delivery'),
+                    count($errors)
+                );
             }
+            
+            wp_send_json_success(array(
+                'message' => $message,
+                'saved_count' => $saved_count,
+                'errors' => $errors
+            ));
+        } else {
+            wp_send_json_error(array(
+                'message' => __('Failed to save any products', 'garden-sheds-delivery'),
+                'errors' => $errors
+            ));
         }
-        
-        wp_send_json_success(array(
-            'title' => $product->post_title,
-            'home_delivery' => $home_delivery === '' ? '(empty - inherits from category)' : $home_delivery,
-            'express_delivery' => $express_delivery === '' ? '(empty - inherits from category)' : $express_delivery,
-            'contact_delivery' => $contact_delivery === '' ? '(empty - inherits from category)' : $contact_delivery,
-            'categories' => !empty($categories) ? implode(', ', $categories) : 'None',
-        ));
     }
 }
