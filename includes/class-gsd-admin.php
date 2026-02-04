@@ -174,6 +174,7 @@ class GSD_Admin {
         }
         
         // Calculate indeterminate states
+        $debug_info = array(); // For debug output
         foreach ($categories as $category) {
             if (!isset($products_by_category[$category->term_id])) {
                 continue;
@@ -188,21 +189,47 @@ class GSD_Admin {
                 'contact_delivery' => '_gsd_contact_for_delivery'
             );
             
+            $category_debug = array(
+                'name' => $category->name,
+                'id' => $category->term_id,
+                'product_count' => count($category_products),
+                'options' => array()
+            );
+            
             foreach ($meta_keys as $option => $meta_key) {
                 $checked_count = 0;
+                $product_details = array();
                 
                 foreach ($category_products as $product_id) {
                     $value = get_post_meta($product_id, $meta_key, true);
-                    if ($value === 'yes') {
+                    $is_checked = ($value === 'yes');
+                    if ($is_checked) {
                         $checked_count++;
                     }
+                    $product_details[] = array(
+                        'id' => $product_id,
+                        'title' => get_the_title($product_id),
+                        'value' => $value,
+                        'checked' => $is_checked
+                    );
                 }
                 
                 // If some (but not all) products have this option, it's indeterminate
-                if ($checked_count > 0 && $checked_count < count($category_products)) {
+                $is_indeterminate = ($checked_count > 0 && $checked_count < count($category_products));
+                if ($is_indeterminate) {
                     $indeterminate_states[$category->term_id][$option] = true;
                 }
+                
+                $category_debug['options'][$option] = array(
+                    'meta_key' => $meta_key,
+                    'checked_count' => $checked_count,
+                    'total_count' => count($category_products),
+                    'is_indeterminate' => $is_indeterminate,
+                    'products' => $product_details
+                );
             }
+            
+            $debug_info[] = $category_debug;
         }
         ?>
         <div class="wrap">
@@ -256,7 +283,13 @@ class GSD_Admin {
                                     <span class="dashicons dashicons-arrow-right"></span>
                                 </button>
                             </td>
-                            <td><strong><?php echo esc_html($category->name); ?></strong></td>
+                            <td>
+                                <strong><?php echo esc_html($category->name); ?></strong>
+                                <div class="gsd-indeterminate-warning">
+                                    <span class="dashicons dashicons-warning" style="color: #ffb900; font-size: 16px;"></span>
+                                    <span style="font-size: 12px; color: #666;"><?php echo esc_html__('Mixed settings', 'garden-sheds-delivery'); ?></span>
+                                </div>
+                            </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
                                        name="gsd_home_delivery_categories[]" 
@@ -401,6 +434,35 @@ class GSD_Admin {
                     </div>
                 </div>
                 
+                <!-- Indeterminate States Debug -->
+                <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd; margin-top: 20px;">
+                    <h3 style="margin-top: 0;">🔍 Category Indeterminate States Calculation</h3>
+                    <p>This shows how indeterminate states are calculated for each category based on product settings:</p>
+                    <div style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 10px; border: 1px solid #ddd; border-radius: 3px;">
+                        <pre style="margin: 0; font-size: 11px; white-space: pre-wrap;"><?php echo esc_html(print_r($debug_info, true)); ?></pre>
+                    </div>
+                    <details style="margin-top: 10px;">
+                        <summary style="cursor: pointer; color: #2271b1; font-weight: 500;">ℹ️ How to read this debug info</summary>
+                        <div style="margin-top: 10px; padding: 10px; background: #f0f6fc; border-left: 3px solid #2271b1;">
+                            <p style="margin: 0 0 10px 0;"><strong>For each category, you'll see:</strong></p>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                <li><strong>name:</strong> Category name</li>
+                                <li><strong>id:</strong> Category term ID</li>
+                                <li><strong>product_count:</strong> Number of products in category</li>
+                                <li><strong>options:</strong> For each delivery option (home_delivery, express_delivery, contact_delivery):
+                                    <ul>
+                                        <li><strong>checked_count:</strong> How many products have this option enabled</li>
+                                        <li><strong>total_count:</strong> Total products in category</li>
+                                        <li><strong>is_indeterminate:</strong> TRUE if some (but not all) products have the option</li>
+                                        <li><strong>products:</strong> List of all products with their individual settings</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                            <p style="margin: 10px 0 0 0;"><strong>Icon should show when:</strong> At least one option has <code>is_indeterminate: true</code></p>
+                        </div>
+                    </details>
+                </div>
+                
                 <!-- Product Meta Inspector -->
                 <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd; margin-top: 20px;">
                     <h3 style="margin-top: 0;">🔍 Product Meta Inspector</h3>
@@ -484,16 +546,42 @@ class GSD_Admin {
         
         <script>
         jQuery(document).ready(function($) {
+            console.log('='.repeat(80));
+            console.log('GSD CATEGORY ICON SYSTEM - COMPREHENSIVE DEBUG LOG');
+            console.log('='.repeat(80));
+            console.log('Indeterminate States (from PHP):', <?php echo json_encode($indeterminate_states, JSON_PRETTY_PRINT); ?>);
+            console.log('Debug Info (from PHP):', <?php echo json_encode($debug_info, JSON_PRETTY_PRINT); ?>);
+            console.log('='.repeat(80));
+            
+            // Debug logging function
+            function gsdDebugLog(message, data) {
+                if (typeof console !== 'undefined' && console.log) {
+                    var timestamp = new Date().toISOString();
+                    console.log('[GSD Debug ' + timestamp + '] ' + message, data || '');
+                }
+            }
+            
+            gsdDebugLog('=== GSD Category Icon System Initialized ===');
+            
             // Set indeterminate states on page load
             var indeterminateStates = <?php echo json_encode($indeterminate_states); ?>;
             
+            gsdDebugLog('Indeterminate states loaded from PHP:', indeterminateStates);
+            
+            var appliedCount = 0;
             $.each(indeterminateStates, function(categoryId, states) {
                 var categoryRow = $('.gsd-category-row[data-category-id="' + categoryId + '"]');
+                
+                gsdDebugLog('Processing category ID: ' + categoryId, {
+                    states: states,
+                    rowFound: categoryRow.length > 0
+                });
                 
                 if (states.home_delivery) {
                     var homeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
                     if (homeCheckbox) {
                         homeCheckbox.indeterminate = true;
+                        gsdDebugLog('  → Set home_delivery checkbox to indeterminate for category ' + categoryId);
                     }
                 }
                 
@@ -501,6 +589,7 @@ class GSD_Admin {
                     var expressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
                     if (expressCheckbox) {
                         expressCheckbox.indeterminate = true;
+                        gsdDebugLog('  → Set express_delivery checkbox to indeterminate for category ' + categoryId);
                     }
                 }
                 
@@ -508,14 +597,22 @@ class GSD_Admin {
                     var contactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
                     if (contactCheckbox) {
                         contactCheckbox.indeterminate = true;
+                        gsdDebugLog('  → Set contact_delivery checkbox to indeterminate for category ' + categoryId);
                     }
                 }
                 
                 // Add visual indicator if any checkbox is indeterminate
                 if (states.home_delivery || states.express_delivery || states.contact_delivery) {
                     categoryRow.addClass('has-indeterminate');
+                    appliedCount++;
+                    gsdDebugLog('  → Applied has-indeterminate class to category ' + categoryId, {
+                        hasClass: categoryRow.hasClass('has-indeterminate'),
+                        warningElement: categoryRow.find('.gsd-indeterminate-warning').length
+                    });
                 }
             });
+            
+            gsdDebugLog('Page load complete - Applied has-indeterminate to ' + appliedCount + ' categories');
             
             // Toggle product display
             $('.gsd-toggle-products').on('click', function() {
@@ -656,10 +753,16 @@ class GSD_Admin {
             
             // Update category checkbox states based on product states
             function updateCategoryCheckboxStates(categoryId) {
+                gsdDebugLog('updateCategoryCheckboxStates called for category: ' + categoryId);
+                
                 var categoryRow = $('.gsd-category-row[data-category-id="' + categoryId + '"]');
                 var productsContainer = $('#gsd-products-' + categoryId + ' .gsd-products-container');
                 
                 if (!productsContainer.length || !categoryRow.length) {
+                    gsdDebugLog('  → Cannot update - container or row not found', {
+                        containerFound: productsContainer.length > 0,
+                        rowFound: categoryRow.length > 0
+                    });
                     return;
                 }
                 
@@ -667,6 +770,12 @@ class GSD_Admin {
                 var homeCheckboxes = productsContainer.find('.gsd-product-home-delivery');
                 var expressCheckboxes = productsContainer.find('.gsd-product-express-delivery');
                 var contactCheckboxes = productsContainer.find('.gsd-product-contact-delivery');
+                
+                gsdDebugLog('  → Product checkboxes found', {
+                    home: homeCheckboxes.length,
+                    express: expressCheckboxes.length,
+                    contact: contactCheckboxes.length
+                });
                 
                 // Get category checkboxes
                 var categoryHomeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
@@ -683,10 +792,19 @@ class GSD_Admin {
                                       (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
                                       (categoryContactCheckbox && categoryContactCheckbox.indeterminate);
                 
+                gsdDebugLog('  → Indeterminate check', {
+                    homeIndeterminate: categoryHomeCheckbox ? categoryHomeCheckbox.indeterminate : 'N/A',
+                    expressIndeterminate: categoryExpressCheckbox ? categoryExpressCheckbox.indeterminate : 'N/A',
+                    contactIndeterminate: categoryContactCheckbox ? categoryContactCheckbox.indeterminate : 'N/A',
+                    hasIndeterminate: hasIndeterminate
+                });
+                
                 if (hasIndeterminate) {
                     categoryRow.addClass('has-indeterminate');
+                    gsdDebugLog('  → Added has-indeterminate class to category ' + categoryId);
                 } else {
                     categoryRow.removeClass('has-indeterminate');
+                    gsdDebugLog('  → Removed has-indeterminate class from category ' + categoryId);
                 }
             }
             
@@ -703,19 +821,31 @@ class GSD_Admin {
                     }
                 });
                 
+                var state = '';
                 if (checkedCount === 0) {
                     // None checked
                     categoryCheckbox.checked = false;
                     categoryCheckbox.indeterminate = false;
+                    state = 'unchecked';
                 } else if (checkedCount === productCheckboxes.length) {
                     // All checked
                     categoryCheckbox.checked = true;
                     categoryCheckbox.indeterminate = false;
+                    state = 'checked';
                 } else {
                     // Some checked (indeterminate)
                     categoryCheckbox.checked = false;
                     categoryCheckbox.indeterminate = true;
+                    state = 'indeterminate';
                 }
+                
+                gsdDebugLog('    → updateCheckboxState', {
+                    checkboxName: categoryCheckbox.name,
+                    checkedCount: checkedCount,
+                    totalCount: productCheckboxes.length,
+                    resultState: state,
+                    isIndeterminate: categoryCheckbox.indeterminate
+                });
             }
             
             // Handle category checkbox changes - update all product checkboxes when category checkbox is clicked
@@ -748,8 +878,37 @@ class GSD_Admin {
                 if (productCheckboxClass) {
                     // Update all product checkboxes of this type
                     productsContainer.find(productCheckboxClass).prop('checked', isChecked);
-                    // Clear indeterminate state
+                    // Clear indeterminate state for this specific checkbox
                     checkbox[0].indeterminate = false;
+                    
+                    gsdDebugLog('Category checkbox changed - updating products and recalculating state', {
+                        categoryId: categoryId,
+                        checkboxName: checkboxName,
+                        isChecked: isChecked
+                    });
+                    
+                    // Recalculate the category row's has-indeterminate state
+                    // This checks ALL checkboxes to see if any are still indeterminate
+                    var categoryHomeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
+                    var categoryExpressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
+                    var categoryContactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
+                    
+                    var hasAnyIndeterminate = (categoryHomeCheckbox && categoryHomeCheckbox.indeterminate) ||
+                                             (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
+                                             (categoryContactCheckbox && categoryContactCheckbox.indeterminate);
+                    
+                    if (hasAnyIndeterminate) {
+                        categoryRow.addClass('has-indeterminate');
+                    } else {
+                        categoryRow.removeClass('has-indeterminate');
+                    }
+                    
+                    gsdDebugLog('  → Updated has-indeterminate class', {
+                        hasAnyIndeterminate: hasAnyIndeterminate,
+                        homeIndeterminate: categoryHomeCheckbox ? categoryHomeCheckbox.indeterminate : 'N/A',
+                        expressIndeterminate: categoryExpressCheckbox ? categoryExpressCheckbox.indeterminate : 'N/A',
+                        contactIndeterminate: categoryContactCheckbox ? categoryContactCheckbox.indeterminate : 'N/A'
+                    });
                     
                     // Auto-save the updated product settings
                     autoSaveProductSettings(categoryId);
