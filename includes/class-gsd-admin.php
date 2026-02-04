@@ -161,7 +161,7 @@ class GSD_Admin {
                     <p style="margin: 5px 0 0 0;">
                         <?php 
                         printf(
-                            esc_html__('When you expand a category and uncheck individual products, the category checkbox will show a dash (–) instead of a checkmark. This indicates that some products in that category have the shipping option enabled, while others don\'t. The entire row will be highlighted in yellow to make this clear. Changes to individual products are auto-saved immediately.', 'garden-sheds-delivery')
+                            esc_html__('When you expand a category and uncheck individual products, the category checkbox will show a dash (–) instead of a checkmark. This indicates that some products in that category have the shipping option enabled, while others don\'t. Changes to individual products are auto-saved immediately.', 'garden-sheds-delivery')
                         );
                         ?>
                     </p>
