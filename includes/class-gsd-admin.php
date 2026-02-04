@@ -1511,7 +1511,6 @@ class GSD_Admin {
             <td></td>
         </tr>
         <?php endforeach;
-        <?php
         $html = ob_get_clean();
         
         wp_send_json_success(array('html' => $html));
