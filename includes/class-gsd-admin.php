@@ -1838,13 +1838,13 @@ class GSD_Admin {
                     if ($is_checked) {
                         // Set to main_freight if checked
                         $current_courier = get_post_meta($product_id, '_gsd_courier', true);
-                        if (empty($current_courier) || !in_array($current_courier, array('main_freight', 'pbt'))) {
+                        if (!in_array($current_courier, array('main_freight', 'pbt'), true)) {
                             update_post_meta($product_id, '_gsd_courier', 'main_freight');
                         }
                     } else {
                         // Clear courier if unchecked
                         $current_courier = get_post_meta($product_id, '_gsd_courier', true);
-                        if (in_array($current_courier, array('main_freight', 'pbt'))) {
+                        if (in_array($current_courier, array('main_freight', 'pbt'), true)) {
                             update_post_meta($product_id, '_gsd_courier', '');
                         }
                     }
