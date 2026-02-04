@@ -285,7 +285,7 @@ class GSD_Admin {
                             </td>
                             <td>
                                 <strong><?php echo esc_html($category->name); ?></strong>
-                                <div class="gsd-indeterminate-warning" style="display: none;">
+                                <div class="gsd-indeterminate-warning">
                                     <span class="dashicons dashicons-warning" style="color: #ffb900; font-size: 16px;"></span>
                                     <span style="font-size: 12px; color: #666;"><?php echo esc_html__('Mixed settings', 'garden-sheds-delivery'); ?></span>
                                 </div>
@@ -878,8 +878,37 @@ class GSD_Admin {
                 if (productCheckboxClass) {
                     // Update all product checkboxes of this type
                     productsContainer.find(productCheckboxClass).prop('checked', isChecked);
-                    // Clear indeterminate state
+                    // Clear indeterminate state for this specific checkbox
                     checkbox[0].indeterminate = false;
+                    
+                    gsdDebugLog('Category checkbox changed - updating products and recalculating state', {
+                        categoryId: categoryId,
+                        checkboxName: checkboxName,
+                        isChecked: isChecked
+                    });
+                    
+                    // Recalculate the category row's has-indeterminate state
+                    // This checks ALL checkboxes to see if any are still indeterminate
+                    var categoryHomeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
+                    var categoryExpressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
+                    var categoryContactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
+                    
+                    var hasAnyIndeterminate = (categoryHomeCheckbox && categoryHomeCheckbox.indeterminate) ||
+                                             (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
+                                             (categoryContactCheckbox && categoryContactCheckbox.indeterminate);
+                    
+                    if (hasAnyIndeterminate) {
+                        categoryRow.addClass('has-indeterminate');
+                    } else {
+                        categoryRow.removeClass('has-indeterminate');
+                    }
+                    
+                    gsdDebugLog('  → Updated has-indeterminate class', {
+                        hasAnyIndeterminate: hasAnyIndeterminate,
+                        homeIndeterminate: categoryHomeCheckbox ? categoryHomeCheckbox.indeterminate : 'N/A',
+                        expressIndeterminate: categoryExpressCheckbox ? categoryExpressCheckbox.indeterminate : 'N/A',
+                        contactIndeterminate: categoryContactCheckbox ? categoryContactCheckbox.indeterminate : 'N/A'
+                    });
                     
                     // Auto-save the updated product settings
                     autoSaveProductSettings(categoryId);
