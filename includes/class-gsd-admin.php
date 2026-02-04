@@ -102,6 +102,8 @@ class GSD_Admin {
         register_setting('gsd_settings', 'gsd_express_delivery_categories');
         register_setting('gsd_settings', 'gsd_default_express_delivery_cost');
         register_setting('gsd_settings', 'gsd_contact_delivery_categories');
+        register_setting('gsd_settings', 'gsd_depot_categories');
+        // Keep legacy settings for backwards compatibility
         register_setting('gsd_settings', 'gsd_main_freight_categories');
         register_setting('gsd_settings', 'gsd_pbt_categories');
     }
@@ -146,6 +148,7 @@ class GSD_Admin {
                 'home_delivery' => false,
                 'express_delivery' => false,
                 'contact_delivery' => false,
+                'depot' => false,
             );
         }
         
@@ -186,7 +189,8 @@ class GSD_Admin {
             $meta_keys = array(
                 'home_delivery' => '_gsd_home_delivery_available',
                 'express_delivery' => '_gsd_express_delivery_available',
-                'contact_delivery' => '_gsd_contact_for_delivery'
+                'contact_delivery' => '_gsd_contact_for_delivery',
+                'depot' => '_gsd_courier'
             );
             
             $category_debug = array(
@@ -202,7 +206,12 @@ class GSD_Admin {
                 
                 foreach ($category_products as $product_id) {
                     $value = get_post_meta($product_id, $meta_key, true);
-                    $is_checked = ($value === 'yes');
+                    // For depot, check if courier is set (either main_freight or pbt)
+                    if ($option === 'depot') {
+                        $is_checked = !empty($value) && in_array($value, array('main_freight', 'pbt'));
+                    } else {
+                        $is_checked = ($value === 'yes');
+                    }
                     if ($is_checked) {
                         $checked_count++;
                     }
@@ -271,8 +280,7 @@ class GSD_Admin {
                             <th style="text-align: center;"><?php echo esc_html__('Home Delivery', 'garden-sheds-delivery'); ?></th>
                             <th style="text-align: center;"><?php echo esc_html__('Small Items', 'garden-sheds-delivery'); ?></th>
                             <th style="text-align: center;"><?php echo esc_html__('Might be able to offer home delivery', 'garden-sheds-delivery'); ?></th>
-                            <th style="text-align: center;"><?php echo esc_html__('Main Freight', 'garden-sheds-delivery'); ?></th>
-                            <th style="text-align: center;"><?php echo esc_html__('PBT', 'garden-sheds-delivery'); ?></th>
+                            <th style="text-align: center;"><?php echo esc_html__('Depot', 'garden-sheds-delivery'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -306,15 +314,10 @@ class GSD_Admin {
                             </td>
                             <td style="text-align: center;">
                                 <input type="checkbox" 
-                                       name="gsd_main_freight_categories[]" 
+                                       class="gsd-category-depot-checkbox"
+                                       name="gsd_depot_categories[]" 
                                        value="<?php echo esc_attr($category->term_id); ?>"
-                                       <?php checked(in_array($category->term_id, $selected_main_freight)); ?> />
-                            </td>
-                            <td style="text-align: center;">
-                                <input type="checkbox" 
-                                       name="gsd_pbt_categories[]" 
-                                       value="<?php echo esc_attr($category->term_id); ?>"
-                                       <?php checked(in_array($category->term_id, $selected_pbt)); ?> />
+                                       <?php checked(in_array($category->term_id, $selected_main_freight) || in_array($category->term_id, $selected_pbt)); ?> />
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -587,8 +590,16 @@ class GSD_Admin {
                     }
                 }
                 
+                if (states.depot) {
+                    var depotCheckbox = categoryRow.find('input[name="gsd_depot_categories[]"]')[0];
+                    if (depotCheckbox) {
+                        depotCheckbox.indeterminate = true;
+                        gsdDebugLog('  → Set depot checkbox to indeterminate for category ' + categoryId);
+                    }
+                }
+                
                 // Log if any checkbox is indeterminate
-                if (states.home_delivery || states.express_delivery || states.contact_delivery) {
+                if (states.home_delivery || states.express_delivery || states.contact_delivery || states.depot) {
                     appliedCount++;
                     gsdDebugLog('  → Applied indeterminate state to checkboxes for category ' + categoryId);
                 }
@@ -685,7 +696,8 @@ class GSD_Admin {
                             product_id: productId,
                             home_delivery: row.find('.gsd-product-home-delivery').is(':checked') ? 1 : 0,
                             express_delivery: row.find('.gsd-product-express-delivery').is(':checked') ? 1 : 0,
-                            contact_delivery: row.find('.gsd-product-contact-delivery').is(':checked') ? 1 : 0
+                            contact_delivery: row.find('.gsd-product-contact-delivery').is(':checked') ? 1 : 0,
+                            depot: row.find('.gsd-product-depot').is(':checked') ? 1 : 0
                         });
                     });
                     
@@ -765,32 +777,38 @@ class GSD_Admin {
                 var homeCheckboxes = productsContainer.find('.gsd-product-home-delivery');
                 var expressCheckboxes = productsContainer.find('.gsd-product-express-delivery');
                 var contactCheckboxes = productsContainer.find('.gsd-product-contact-delivery');
+                var depotCheckboxes = productsContainer.find('.gsd-product-depot');
                 
                 gsdDebugLog('  → Product checkboxes found', {
                     home: homeCheckboxes.length,
                     express: expressCheckboxes.length,
-                    contact: contactCheckboxes.length
+                    contact: contactCheckboxes.length,
+                    depot: depotCheckboxes.length
                 });
                 
                 // Get category checkboxes
                 var categoryHomeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
                 var categoryExpressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
                 var categoryContactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
+                var categoryDepotCheckbox = categoryRow.find('input[name="gsd_depot_categories[]"]')[0];
                 
                 // Update each category checkbox based on product states
                 updateCheckboxState(categoryHomeCheckbox, homeCheckboxes);
                 updateCheckboxState(categoryExpressCheckbox, expressCheckboxes);
                 updateCheckboxState(categoryContactCheckbox, contactCheckboxes);
+                updateCheckboxState(categoryDepotCheckbox, depotCheckboxes);
                 
                 // Add visual indicator if any checkbox is indeterminate
                 var hasIndeterminate = (categoryHomeCheckbox && categoryHomeCheckbox.indeterminate) ||
                                       (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
-                                      (categoryContactCheckbox && categoryContactCheckbox.indeterminate);
+                                      (categoryContactCheckbox && categoryContactCheckbox.indeterminate) ||
+                                      (categoryDepotCheckbox && categoryDepotCheckbox.indeterminate);
                 
                 gsdDebugLog('  → Indeterminate check', {
                     homeIndeterminate: categoryHomeCheckbox ? categoryHomeCheckbox.indeterminate : 'N/A',
                     expressIndeterminate: categoryExpressCheckbox ? categoryExpressCheckbox.indeterminate : 'N/A',
                     contactIndeterminate: categoryContactCheckbox ? categoryContactCheckbox.indeterminate : 'N/A',
+                    depotIndeterminate: categoryDepotCheckbox ? categoryDepotCheckbox.indeterminate : 'N/A',
                     hasIndeterminate: hasIndeterminate
                 });
                 
@@ -866,6 +884,8 @@ class GSD_Admin {
                     productCheckboxClass = '.gsd-product-express-delivery';
                 } else if (checkboxName && checkboxName.indexOf('gsd_contact_delivery_categories') > -1) {
                     productCheckboxClass = '.gsd-product-contact-delivery';
+                } else if (checkboxName && checkboxName.indexOf('gsd_depot_categories') > -1) {
+                    productCheckboxClass = '.gsd-product-depot';
                 }
                 
                 if (productCheckboxClass) {
@@ -885,16 +905,19 @@ class GSD_Admin {
                     var categoryHomeCheckbox = categoryRow.find('input[name="gsd_home_delivery_categories[]"]')[0];
                     var categoryExpressCheckbox = categoryRow.find('input[name="gsd_express_delivery_categories[]"]')[0];
                     var categoryContactCheckbox = categoryRow.find('input[name="gsd_contact_delivery_categories[]"]')[0];
+                    var categoryDepotCheckbox = categoryRow.find('input[name="gsd_depot_categories[]"]')[0];
                     
                     var hasAnyIndeterminate = (categoryHomeCheckbox && categoryHomeCheckbox.indeterminate) ||
                                              (categoryExpressCheckbox && categoryExpressCheckbox.indeterminate) ||
-                                             (categoryContactCheckbox && categoryContactCheckbox.indeterminate);
+                                             (categoryContactCheckbox && categoryContactCheckbox.indeterminate) ||
+                                             (categoryDepotCheckbox && categoryDepotCheckbox.indeterminate);
                     
                     gsdDebugLog('  → Updated indeterminate states', {
                         hasAnyIndeterminate: hasAnyIndeterminate,
                         homeIndeterminate: categoryHomeCheckbox ? categoryHomeCheckbox.indeterminate : 'N/A',
                         expressIndeterminate: categoryExpressCheckbox ? categoryExpressCheckbox.indeterminate : 'N/A',
-                        contactIndeterminate: categoryContactCheckbox ? categoryContactCheckbox.indeterminate : 'N/A'
+                        contactIndeterminate: categoryContactCheckbox ? categoryContactCheckbox.indeterminate : 'N/A',
+                        depotIndeterminate: categoryDepotCheckbox ? categoryDepotCheckbox.indeterminate : 'N/A'
                     });
                     
                     // Auto-save the updated product settings
@@ -903,7 +926,7 @@ class GSD_Admin {
             });
             
             // Handle product checkbox changes - update category checkbox state when product checkboxes are clicked
-            $(document).on('change', '.gsd-product-home-delivery, .gsd-product-express-delivery, .gsd-product-contact-delivery', function() {
+            $(document).on('change', '.gsd-product-home-delivery, .gsd-product-express-delivery, .gsd-product-contact-delivery, .gsd-product-depot', function() {
                 var checkbox = $(this);
                 var productRow = checkbox.closest('.gsd-product-row');
                 var productsContainer = productRow.closest('.gsd-products-container');
@@ -1259,11 +1282,16 @@ class GSD_Admin {
         // Save contact delivery categories
         $this->save_category_option('gsd_contact_delivery_categories');
 
-        // Save main freight categories
-        $this->save_category_option('gsd_main_freight_categories');
-
-        // Save PBT categories
-        $this->save_category_option('gsd_pbt_categories');
+        // Save depot categories
+        $this->save_category_option('gsd_depot_categories');
+        
+        // For backwards compatibility, also save to both main_freight and pbt
+        // (depot applies to both)
+        $depot_categories = isset($_POST['gsd_depot_categories']) && is_array($_POST['gsd_depot_categories']) 
+            ? array_map('intval', $_POST['gsd_depot_categories']) 
+            : array();
+        update_option('gsd_main_freight_categories', $depot_categories);
+        update_option('gsd_pbt_categories', $depot_categories);
 
         // Save default home delivery cost
         $cost = isset($_POST['gsd_default_home_delivery_cost']) 
@@ -1480,15 +1508,18 @@ class GSD_Admin {
         $selected_home_delivery = get_option('gsd_home_delivery_categories', array());
         $selected_express_delivery = get_option('gsd_express_delivery_categories', array());
         $selected_contact_delivery = get_option('gsd_contact_delivery_categories', array());
+        $selected_depot = get_option('gsd_depot_categories', array());
         
         $selected_home_delivery = is_array($selected_home_delivery) ? $selected_home_delivery : array();
         $selected_express_delivery = is_array($selected_express_delivery) ? $selected_express_delivery : array();
         $selected_contact_delivery = is_array($selected_contact_delivery) ? $selected_contact_delivery : array();
+        $selected_depot = is_array($selected_depot) ? $selected_depot : array();
         
         // Check if category has delivery options enabled
         $category_has_home_delivery = in_array($category_id, $selected_home_delivery);
         $category_has_express_delivery = in_array($category_id, $selected_express_delivery);
         $category_has_contact_delivery = in_array($category_id, $selected_contact_delivery);
+        $category_has_depot = in_array($category_id, $selected_depot);
         
         // Build products as table rows that will be inserted into the main table
         ob_start();
@@ -1497,11 +1528,17 @@ class GSD_Admin {
             $home_delivery_meta = get_post_meta($product->ID, '_gsd_home_delivery_available', true);
             $express_delivery_meta = get_post_meta($product->ID, '_gsd_express_delivery_available', true);
             $contact_delivery_meta = get_post_meta($product->ID, '_gsd_contact_for_delivery', true);
+            $depot_meta = get_post_meta($product->ID, '_gsd_courier', true);
             
             // If meta is empty, inherit from category; otherwise use saved value
             $home_delivery = ($home_delivery_meta === '') ? $category_has_home_delivery : ($home_delivery_meta === 'yes');
             $express_delivery = ($express_delivery_meta === '') ? $category_has_express_delivery : ($express_delivery_meta === 'yes');
             $contact_delivery = ($contact_delivery_meta === '') ? $category_has_contact_delivery : ($contact_delivery_meta === 'yes');
+            // For depot, check if courier is set to main_freight or pbt
+            $has_depot = !empty($depot_meta) && in_array($depot_meta, array('main_freight', 'pbt'));
+            if ($depot_meta === '' && $category_has_depot) {
+                $has_depot = true;
+            }
         ?>
         <tr class="gsd-product-row" data-product-id="<?php echo esc_attr($product->ID); ?>" data-category-id="<?php echo esc_attr($category_id); ?>">
             <td><!-- Empty: aligns with toggle button column --></td>
@@ -1519,8 +1556,9 @@ class GSD_Admin {
             <td style="text-align: center;">
                 <input type="checkbox" class="gsd-product-contact-delivery" <?php checked($contact_delivery); ?> />
             </td>
-            <td><!-- Empty: aligns with Main Freight column --></td>
-            <td><!-- Empty: aligns with PBT column --></td>
+            <td style="text-align: center;">
+                <input type="checkbox" class="gsd-product-depot" <?php checked($has_depot); ?> />
+            </td>
         </tr>
         <?php endforeach;
         $html = ob_get_clean();
@@ -1579,11 +1617,13 @@ class GSD_Admin {
             $home_raw = isset($product_data['home_delivery']) ? $product_data['home_delivery'] : false;
             $express_raw = isset($product_data['express_delivery']) ? $product_data['express_delivery'] : false;
             $contact_raw = isset($product_data['contact_delivery']) ? $product_data['contact_delivery'] : false;
+            $depot_raw = isset($product_data['depot']) ? $product_data['depot'] : false;
             
             // Convert to boolean (handles both boolean and string 'true'/'false', and integers 1/0)
             $home_delivery_bool = filter_var($home_raw, FILTER_VALIDATE_BOOLEAN);
             $express_delivery_bool = filter_var($express_raw, FILTER_VALIDATE_BOOLEAN);
             $contact_delivery_bool = filter_var($contact_raw, FILTER_VALIDATE_BOOLEAN);
+            $depot_bool = filter_var($depot_raw, FILTER_VALIDATE_BOOLEAN);
             
             // Convert to 'yes' or 'no' for storage
             $home_delivery = $home_delivery_bool ? 'yes' : 'no';
@@ -1594,6 +1634,23 @@ class GSD_Admin {
             update_post_meta($product_id, '_gsd_home_delivery_available', $home_delivery);
             update_post_meta($product_id, '_gsd_express_delivery_available', $express_delivery);
             update_post_meta($product_id, '_gsd_contact_for_delivery', $contact_delivery);
+            
+            // For depot, set courier to main_freight if checked, empty if unchecked
+            // (We use main_freight as the default depot courier)
+            if ($depot_bool) {
+                // Get current courier value - if empty or not a depot courier, set to main_freight
+                $current_courier = get_post_meta($product_id, '_gsd_courier', true);
+                if (empty($current_courier) || !in_array($current_courier, array('main_freight', 'pbt'))) {
+                    update_post_meta($product_id, '_gsd_courier', 'main_freight');
+                }
+                // If already set to main_freight or pbt, keep it as is
+            } else {
+                // Unchecked - clear courier if it's a depot courier
+                $current_courier = get_post_meta($product_id, '_gsd_courier', true);
+                if (in_array($current_courier, array('main_freight', 'pbt'))) {
+                    update_post_meta($product_id, '_gsd_courier', '');
+                }
+            }
             
             // Note: update_post_meta returns false for errors OR when value is unchanged.
             // We count this as successful since all three updates were attempted without exceptions.
