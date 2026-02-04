@@ -156,6 +156,11 @@ class GSD_Admin {
             'fields' => 'ids',
         ));
         
+        // Prime meta cache for all products to avoid N+1 queries
+        if (!empty($all_products)) {
+            update_meta_cache('post', $all_products);
+        }
+        
         // Group products by category
         $products_by_category = array();
         foreach ($all_products as $product_id) {
