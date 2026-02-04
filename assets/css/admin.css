@@ -8,21 +8,8 @@
     opacity: 1;
 }
 
-/* Highlight category rows with indeterminate checkboxes */
-.gsd-category-row.has-indeterminate {
-    background-color: #fff8e5 !important;
-}
-
-/* Add a visual marker for mixed state */
-.gsd-category-row.has-indeterminate td:first-child::after {
-    content: '⚠';
-    display: inline-block;
-    margin-left: 5px;
-    color: #ffb900;
-    font-size: 16px;
-    vertical-align: middle;
-    cursor: help;
-}
+/* Note: Indeterminate checkboxes use browser's native hyphen styling */
+/* No additional visual indicators needed per user requirements */
 
 /* Style for category table */
 .gsd-category-table {
